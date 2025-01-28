@@ -230,60 +230,51 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 3) API ENDPOINT
 // ------------------------------
 app.get('/api/route', (req, res) => {
-    try {
-      const startVal = req.query.start;
-      const endVal = req.query.end;
-      const comfort = (req.query.comfort === '1' || req.query.comfort === 'true');
+  const startVal = req.query.start;
+  const endVal = req.query.end;
+  const comfort = (req.query.comfort === '1' || req.query.comfort === 'true');
   
-      // Optional parameters
-      const through = req.query.through || '';
-      const mustPassStations = through
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+  // optional
+  const through = req.query.through || '';
+  const mustPassStations = through
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  const ignore = req.query.ignore || '';
+  const ignoredLines = ignore
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  // Validate
+  if (!startVal || !endVal) {
+    return res.json({ error: 'Missing start or end station.' });
+  }
+  if (!graph[startVal] || !graph[endVal]) {
+    return res.json({ error: 'Invalid station name(s).' });
+  }
+  if (startVal === endVal) {
+    return res.json({ error: 'Start and end are the same.' });
+  }
+
+  // Build graph ignoring lines
+  const usableGraph = buildUsableGraph(ignoredLines);
+  const stops = [startVal, ...mustPassStations, endVal];
+  // BFS
+  const route = multiSegmentPath(stops, usableGraph, comfort);
+  if (!route) {
+    return res.json({ error: 'No route found with current constraints.' });
+  }
   
-      const ignore = req.query.ignore || '';
-      const ignoredLines = ignore
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-  
-      // Input validation
-      if (!startVal || !endVal) {
-        return res.status(400).json({ error: 'Missing start or end station.' });
-      }
-      if (!graph[startVal] || !graph[endVal]) {
-        return res.status(400).json({ error: 'Invalid station name(s).' });
-      }
-      if (startVal === endVal) {
-        return res.status(400).json({ error: 'Start and end are the same.' });
-      }
-  
-      // Build graph and calculate route
-      const usableGraph = buildUsableGraph(ignoredLines);
-      const stops = [startVal, ...mustPassStations, endVal];
-  
-      const route = multiSegmentPath(stops, usableGraph, comfort);
-      if (!route) {
-        return res.status(404).json({ error: 'No route found with current constraints.' });
-      }
-  
-      // Success response
-      return res
-        .set('Connection', 'close') // Explicitly close connection
-        .json({
-          route,
-          stationCount: route.length,
-          comfortMode: comfort,
-          mustPassStations,
-          ignoredLines,
-        });
-    } catch (error) {
-      console.error('[ERROR]', error); // Log unexpected errors
-      return res.status(500).json({ error: 'Internal server error.' });
-    }
+  return res.json({
+    route,
+    stationCount: route.length,
+    comfortMode: comfort,
+    mustPassStations,
+    ignoredLines
   });
-  
+});
 
 // ------------------------------
 // 4) START THE SERVER (Azure picks the PORT automatically)
