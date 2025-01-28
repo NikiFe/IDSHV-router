@@ -1,58 +1,1003 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <title>HVgame Metro – IDSHV Router</title>
-  <link rel="stylesheet" href="./style.css">
+  <meta charset="UTF-8" />
+  <title>IDSHV Router</title>
+  <!-- Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap" 
+    rel="stylesheet"
+  >
+
+  <style>
+    /****************************************
+     * RESET + HLAVNÍ MODERNÍ TMAVÝ STYL
+     ****************************************/
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #111;
+      color: #eee;
+      font-family: 'Poppins', sans-serif; /* Moderní font */
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /****************************************
+     * HLAVIČKA
+     ****************************************/
+    header {
+      background: #222;
+      padding: 1.2rem;
+      text-align: center;
+      font-size: 1.4rem;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      z-index: 10;
+    }
+
+    /****************************************
+     * HLAVNÍ
+     ****************************************/
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+    }
+
+    /****************************************
+     * LEVÝ PANEL
+     ****************************************/
+    .left-panel {
+      width: 350px;
+      min-width: 280px;
+      background: #1b1b1b;
+      border-right: 1px solid #333;
+      padding: 1rem;
+      overflow-y: auto; 
+    }
+    .search-container {
+      background: #2b2b2b;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .search-container label {
+      font-weight: 500;
+      margin-top: 0.5rem;
+      display: inline-block;
+    }
+    .search-container input {
+      width: 100%;
+      padding: 0.6rem;
+      border: 2px solid #444;
+      border-radius: 5px;
+      background: #111;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      transition: border 0.2s;
+    }
+    .search-container input:focus {
+      outline: none;
+      border-color: #66ccff;
+    }
+
+    .search-buttons {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+    }
+    .search-container button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    #searchBtn {
+      background: #0066cc;
+      color: #fff;
+    }
+    #searchBtn:hover {
+      background: #004f9b;
+    }
+    #settingsBtn {
+      background: #555;
+      color: #eee;
+    }
+    #settingsBtn:hover {
+      background: #444;
+    }
+
+    .result-container {
+      background: #2b2b2b;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.5s ease;
+    }
+    .result-container.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .result-container h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .stations-list {
+      margin: 0.5rem 0 1rem;
+      list-style: none;
+      padding-left: 0.6rem;
+      border-left: 2px solid #555;
+    }
+    .stations-list li {
+      margin: 0.3rem 0;
+      position: relative;
+      padding-left: 1rem;
+      font-size: 0.95rem;
+    }
+    .stations-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #00cc66;
+      font-size: 1rem;
+    }
+    .route-line {
+      color: #ffa800;
+      margin-left: 0.3rem;
+      font-weight: 600;
+    }
+
+    /****************************************
+     * PRAVÝ PANEL
+     ****************************************/
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      gap: 1rem;
+      padding: 1rem;
+      background: #111;
+    }
+
+    /* HORNÍ ČÁST = MODULÁRNÍ SCHÉMA */
+    .top-panel {
+      flex: 0 0 45%;
+      background: #1f1f1f;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .schema-title {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #66e0ff;
+      margin-bottom: 0.5rem;
+    }
+    .line-box {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .station-block {
+      background: #444;
+      color: #fff;
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      transition: background 0.3s, transform 0.3s;
+      font-size: 0.85rem;
+      cursor: default;
+      position: relative;
+    }
+    .station-block:hover {
+      background: #666;
+      transform: scale(1.05);
+    }
+    .station-block[data-multiple="true"] {
+      border: 2px solid #f0a; 
+    }
+    .station-lines {
+      display: inline-block;
+      font-size: 0.7rem;
+      background: #222;
+      color: #ff66ff;
+      padding: 0.1rem 0.3rem;
+      margin-left: 4px;
+      border-radius: 4px;
+      font-weight: bold;
+      opacity: 0.8;
+    }
+    .station-block.highlight {
+      background: #ff9933;
+      animation: highlightFade 1.5s infinite alternate;
+    }
+    @keyframes highlightFade {
+      0%   { background: #ff9933; }
+      100% { background: #ffd966; }
+    }
+    .arrow {
+      color: #aaa;
+      margin: 0 0.3rem;
+    }
+
+    /* DOLNÍ ČÁST = TIMETABLE */
+    .bottom-panel {
+      flex: 1;
+      background: #2b2b2b;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      padding: 1rem;
+      overflow-y: auto;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.5s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .bottom-panel.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .timetable-title {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      color: #66e0ff;
+      font-weight: 600;
+    }
+    table.timetable {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1b1b1b;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    table.timetable thead th {
+      background: #444;
+      color: #fff;
+      text-align: left;
+      padding: 0.6rem;
+      font-size: 0.9rem;
+      border-bottom: 2px solid #666;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    table.timetable tbody td {
+      border-bottom: 1px solid #333;
+      padding: 0.6rem;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      position: relative;
+    }
+    table.timetable tr:hover {
+      background: #333;
+    }
+    .line-cell {
+      width: 20px;
+      text-align: center;
+      vertical-align: middle;
+      padding: 0;
+    }
+    .line-segment {
+      width: 4px;
+      margin: 0 auto;
+      background: #999; 
+      transition: background 0.3s;
+      border-radius: 2px;
+      height: 32px; 
+    }
+
+    /****************************************
+     * OKNO NASTAVENÍ (MODERNÍ STYL)
+     ****************************************/
+    #settingsModal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      width: 320px;
+      background: #2b2b2b;
+      padding: 1rem;
+      border: 2px solid #444;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.7);
+      display: none;
+      transition: all 0.3s ease;
+      z-index: 9999;
+    }
+    #settingsModal.show {
+      display: block;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    #settingsModal h2 {
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+      color: #ccc;
+      font-weight: 600;
+    }
+    .settings-field {
+      margin-bottom: 1rem;
+    }
+    .settings-field label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+      color: #ddd;
+    }
+    .settings-field input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      background: #111;
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      transition: border 0.2s;
+    }
+    .settings-field input[type="text"]:focus {
+      border-color: #66ccff;
+    }
+    .settings-field input[type="checkbox"] {
+      margin-right: 0.5rem;
+      transform: scale(1.2);
+      vertical-align: middle;
+    }
+
+    .settings-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .settings-buttons button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .save-btn {
+      background: #0066cc;
+      color: #fff;
+    }
+    .save-btn:hover {
+      background: #004f9b;
+    }
+    .cancel-btn {
+      background: #444;
+      color: #eee;
+    }
+    .cancel-btn:hover {
+      background: #333;
+    }
+
+    /****************************************
+     * AUTOCOMPLETE LIST
+     ****************************************/
+    .autocomplete {
+      position: relative; /* Důležité, aby .autocomplete-list byla vidět */
+    }
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      max-height: 160px;
+      overflow-y: auto;
+      background: #333;
+      border: 1px solid #666;
+      display: none;
+      border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      z-index: 9999;
+    }
+    .autocomplete-list.show {
+      display: block;
+    }
+    .autocomplete-item {
+      padding: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .autocomplete-item:hover {
+      background: #555;
+    }
+
+  </style>
 </head>
 <body>
-  <header>
-    <h1>HVgame Metro – IDSHV Router</h1>
-  </header>
-
-  <main>
-    <!-- Left Panel: Search / Options -->
-    <div class="left-panel">
-      <div class="search-box">
-        <label for="startInput">Výchozí stanice (Start):</label>
-        <input type="text" id="startInput" placeholder="Např. Zvořany">
-
-        <label for="endInput">Cílová stanice (End):</label>
-        <input type="text" id="endInput" placeholder="Např. Vitjův ráj">
-
-        <label for="mustPassInput">Must pass through (optional):</label>
-        <input type="text" id="mustPassInput" placeholder="stanice oddělené čárkami">
-
-        <label for="ignoreLinesInput">Ignore lines (optional):</label>
-        <input type="text" id="ignoreLinesInput" placeholder="např. M4, M10">
-
-        <div class="mode-select">
-          <label>
-            <input type="radio" name="mode" value="speed" checked>
-            Speed (minimální počet stanic)
-          </label>
-          <label>
-            <input type="radio" name="mode" value="comfort">
-            Comfort (minimalizace přestupů)
-          </label>
+    <header>IDSHV Router</header>
+  
+    <main>
+      <!-- LEVÝ PANEL -->
+      <div class="left-panel">
+        <div class="search-container">
+          <label for="startStation">Výchozí stanice:</label>
+          <div class="autocomplete">
+            <input type="text" id="startStation" placeholder="Aquapark Ondrovoda" autocomplete="off" />
+            <div class="autocomplete-list" id="startAutocomplete"></div>
+          </div>
+  
+          <label for="endStation">Cílová stanice:</label>
+          <div class="autocomplete">
+            <input type="text" id="endStation" placeholder="Vitjův ráj" autocomplete="off" />
+            <div class="autocomplete-list" id="endAutocomplete"></div>
+          </div>
+  
+          <div class="search-buttons">
+            <button id="searchBtn">Vyhledat</button>
+            <button id="settingsBtn">Nastavení</button>
+          </div>
         </div>
-
-        <button id="searchBtn">Vyhledat / Search</button>
+  
+        <div id="result" class="result-container">
+          <h2>Seznam stanic cesty</h2>
+          <p id="summary"></p>
+          <ul id="stationsList" class="stations-list"></ul>
+        </div>
       </div>
-
-      <div id="errorBox" class="error-box"></div>
+  
+      <!-- PRAVÝ PANEL: Horní = Schéma linek, Dolní = Timetable -->
+      <div class="right-panel">
+        <div class="top-panel" id="topPanel"></div>
+        <div class="bottom-panel" id="bottomPanel">
+          <div class="timetable-title" id="timetableTitle">Výsledná trasa</div>
+          <table class="timetable" id="timetable">
+            <thead>
+              <tr>
+                <th class="line-cell"></th>
+                <th>Č.</th>
+                <th>Stanice</th>
+                <th>Linka</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  
+    <!-- OKNO NASTAVENÍ -->
+    <div id="settingsModal">
+      <h2>Nastavení</h2>
+      <div class="settings-field">
+        <label>
+          <input type="checkbox" id="comfortCheckbox" />
+          Komfort (minimalizace přestupů)
+        </label>
+      </div>
+      <div class="settings-field">
+        <label for="throughStationsInput">Přes (stanice oddělené čárkou):</label>
+        <input type="text" id="throughStationsInput" placeholder="např. Hradní věž, Nádraží Město (S)" />
+      </div>
+      <div class="settings-field">
+        <label for="ignoreLinesInput">Ignoruj linku (oddělené čárkou):</label>
+        <input type="text" id="ignoreLinesInput" placeholder="např. M4, M10" />
+      </div>
+      <div class="settings-buttons">
+        <button class="save-btn" id="settingsSaveBtn">Uložit</button>
+        <button class="cancel-btn" id="settingsCancelBtn">Zavřít</button>
+      </div>
     </div>
 
-    <!-- Right Panel: Results -->
-    <div class="right-panel">
-      <div id="resultsContainer" class="results-container">
-        <h2>Výsledná trasa</h2>
-        <p id="summary"></p>
-        <ul id="stationsList"></ul>
-      </div>
-    </div>
-  </main>
+  <script>
+    /****************************************************
+     * 1) LINES DATA (for building the SCHEMA + highlighting)
+     ****************************************************/
+    const LINES = {
+      M1: [
+        "Zvořany","Dvory (Z)","Fontána přání","Ultra hlíny (Z)","Jezero Mílkov","Věznice Honzov","Spawn",
+        "Nádraží Město (S)","Diamantový dům","Úředníků","Honzův dům","Tinovské sedlo","Skalní",
+        "Horská planina","Dýňová (Z)","Podzemní řeka (S)"
+      ],
+      M2: [
+        "NC Švandovka","Federální věznice","Betonárna","Jožinská (Z)","Bažinská","Horská planina",
+        "Standardů","Honzův dům","Unifikace (Z)","Build battle","Survival (S)","Magistrála (Z)",
+        "Bany a unbany (Z)","Hornaté vršky","Jezero Mílkov","Luxusní villa (Z)","Hradní věž",
+        "Honzovo sídliště","Ubytovny (Z)","Jeskynní sídliště","Železárny Vitja","Kryptonu (Z)",
+        "JE Nuggetov"
+      ],
+      M2a: ["Unifikace (Z)","Severní město","Hlavní nádraží (S)","Spawn"],
+      M3: [
+        "Nádraží Město (S)","Pěkná jeskyně","Přírodní koupaliště","Jezero Mílkov","Patriotů (Z)",
+        "Prales Honzov (Z)","Vesnická pláň (Z)","Ve Vesnici"
+      ],
+      M4: [
+        "Podzemní řeka (S)","Inženýrů","Skalní","Náměstí Svobody","Průsmyk","Rozhledna Nová čtvrť",
+        "Honzův dům","Honzův les","Veřejné prostory","Minecraft Got Talent","Pouštní (Z)",
+        "Pouštní řeka","Národní pláž"
+      ],
+      M5: [
+        "Manfredziakow Centralny","Manfredziak Water park","Lotnisko Manfredziakow (S)",
+        "Port (S)","Hotel Morski","Historyczny Krecik","Galeria Milenium","Manfredziakow Centralny"
+      ],
+      M6: [
+        "Radiokomunikace (S)","Meandr","Expo town","Expo 2023 (S)","Inženýra Vitjy","NC Švandovka",
+        "Ošklivců","Aquapark Ondrovoda","Minecraft Got Talent","Národní pláž","Kreativní pláž",
+        "Přístav HVgame","Honzova sjezdovka - Imgoodov","Sídliště Jiřinov","Manfredziakow Centralny",
+        "Kořanov","Honza I.","Sídliště Naděje","Malá Rána","Honzův dům","Diamantový dům",
+        "Pěkná jeskyně","Honzov Airport (S)","Hradní věž","Fontána přání","Sídliště nad jámou",
+        "Plážovka"
+      ],
+      M8: [
+        "Honzova sjezdovka - Imgoodov","Plážní","Pobřežní (Z)","Imgoodovip - Centrum"
+      ],
+      M9: [
+        "Vitjův ráj","Pouštní řeka","Písečné závody","Savanská (Z)","Sídliště Zátoka","Oceánská",
+        "Hotel Imgoodov (Z)","Plážní","Poloostrovní sídliště","Spojené ostrovy - Centrum",
+        "Vitjova villa - Pracovníků","Sídliště Jiřinov","Historický přístav","Přístavní vlečka",
+        "Manfredziakow Centralny","Serverovo údolí","Sídliště Prosperity","Manfredziakowa góra",
+        "Osiedle wschódnie","Elektrownia węglowa","Galeria Wschodnia"
+      ],
+      M9a: [
+        "Vitjova villa - Pracovníků","FC Vitjova villa (Z)","Vitjova villa"
+      ],
+      M10: [
+        "Fontána přání","Boumova","Náměstí přejezdů","Włocławská (Z)","Zvořany","Luník 9","Skalnatá",
+        "Maine (Z)","Brněnská","Oganesjanova (Z)","Pirátů (Z)","Nový Nuggetov (Z)","Futurum","Tabule"
+      ],
+      M12: [
+        "Port (S)","Fabryka andezitu","Řízkový ráj","Mały kościół","Nowa ulica","Manfredziakow Centralny",
+        "Vitjova villa - Promenáda (Z)","Vitjova villa - Arboretum (Z)","Vitjova villa - Botanická (Z)",
+        "Vitjova villa","Vitjova villa - Rekreační (Z)","Prefabrikáty"
+      ],
+      M13: [
+        "Honzův dům","Vitjův ráj","Honzova sjezdovka - Imgoodov","Poloostrovní sídliště","Prefabrikáty"
+      ],
+      M14: [
+        "Lotnisko Manfredziakow (S)","Manfredziakowo Nowe osiedle (S)","Sídliště Prosperity"
+      ]
+    };
 
-  <script src="./client.js"></script>
+    const lineColors = {
+      M1:"#FF8000",M2:"#00EEFF",M2a:"#00EEFF",M3:"#09FF00",M4:"#FF0000",M5:"#0011FF",
+      M6:"#FFCE7A",M8:"#57B6FF",M9:"#24BF8C",M9a:"#24BF8C",M10:"#C73A3A",M12:"#7A0000",
+      M13:"#F700FF",M14:"#8800FF"
+    };
+
+    // We'll use these lines only for:
+    //  - generating the top-panel schema
+    //  - highlighting the route
+    //  - providing station names for autocomplete
+
+    /****************************************************
+     * 2) GLOBAL SETTINGS: comfortMode, mustPassStations, ignoredLines
+     ****************************************************/
+    let comfortMode = false;
+    let mustPassStations = [];
+    let ignoredLines = [];
+
+    /****************************************************
+     * 3) DOM ELEMENTS & RESULT UI
+     ****************************************************/
+    const resultDiv       = document.getElementById('result');
+    const summaryPara     = document.getElementById('summary');
+    const stationsList    = document.getElementById('stationsList');
+    const bottomPanel     = document.getElementById('bottomPanel');
+    const timetableTitle  = document.getElementById('timetableTitle');
+    const timetableBody   = document.querySelector('#timetable tbody');
+
+    // Clears highlighted blocks
+    function clearAllHighlights() {
+      const allBlocks = document.getElementsByClassName('station-block');
+      for (let i = 0; i < allBlocks.length; i++) {
+        allBlocks[i].classList.remove('highlight');
+      }
+    }
+
+    // "Highlights" each station in the path
+    function highlightPathInSchema(path) {
+      path.forEach(({ station, line }) => {
+        const blocks = document.querySelectorAll(`.station-block[data-station="${station}"]`);
+        if (!line) {
+          blocks.forEach(b => b.classList.add('highlight'));
+        } else {
+          let matched = false;
+          blocks.forEach(b => {
+            if (b.dataset.line === line) {
+              b.classList.add('highlight');
+              matched = true;
+            }
+          });
+          if (!matched) {
+            blocks.forEach(b => b.classList.add('highlight'));
+          }
+        }
+      });
+    }
+
+    // Display station-by-station list in left panel
+    function displayPath(route) {
+      stationsList.innerHTML = '';
+      summaryPara.textContent = `Počet stanic na trase: ${route.length}`;
+      route.forEach(step => {
+        const li = document.createElement('li');
+        li.textContent = step.station;
+        if (step.line) {
+          const lineSpan = document.createElement('span');
+          lineSpan.classList.add('route-line');
+          lineSpan.textContent = ` (${step.line})`;
+          li.appendChild(lineSpan);
+        }
+        stationsList.appendChild(li);
+      });
+      setTimeout(() => resultDiv.classList.add('visible'), 50);
+    }
+
+    // Display timetable in bottom panel
+    function displayTimetable(route) {
+      timetableBody.innerHTML = '';
+      timetableTitle.textContent = `Výsledná trasa (celkem ${route.length} stanic)`;
+      route.forEach((step, idx) => {
+        const tr = document.createElement('tr');
+
+        // line color bar
+        const tdLineCell = document.createElement('td');
+        tdLineCell.classList.add('line-cell');
+        const segDiv = document.createElement('div');
+        segDiv.classList.add('line-segment');
+        segDiv.style.background = step.line ? (lineColors[step.line] || '#999') : '#444';
+        tdLineCell.appendChild(segDiv);
+        tr.appendChild(tdLineCell);
+
+        // station index
+        const tdIndex = document.createElement('td');
+        tdIndex.textContent = (idx + 1);
+        tr.appendChild(tdIndex);
+
+        // station name
+        const tdStation = document.createElement('td');
+        tdStation.textContent = step.station;
+        tr.appendChild(tdStation);
+
+        // line name
+        const tdLink = document.createElement('td');
+        tdLink.textContent = step.line || '';
+        tr.appendChild(tdLink);
+
+        timetableBody.appendChild(tr);
+      });
+      setTimeout(() => bottomPanel.classList.add('visible'), 50);
+    }
+
+    /****************************************************
+     * 4) SETTINGS MODAL (Comfort, Must-Pass, Ignore)
+     ****************************************************/
+    const settingsModal          = document.getElementById('settingsModal');
+    const comfortCheckbox        = document.getElementById('comfortCheckbox');
+    const throughStationsInput   = document.getElementById('throughStationsInput');
+    const ignoreLinesInput       = document.getElementById('ignoreLinesInput');
+    const settingsBtn            = document.getElementById('settingsBtn');
+    const settingsSaveBtn        = document.getElementById('settingsSaveBtn');
+    const settingsCancelBtn      = document.getElementById('settingsCancelBtn');
+
+    settingsBtn.addEventListener('click', () => {
+      comfortCheckbox.checked = comfortMode;
+      throughStationsInput.value = mustPassStations.join(", ");
+      ignoreLinesInput.value = ignoredLines.join(", ");
+      settingsModal.classList.add('show');
+    });
+
+    settingsSaveBtn.addEventListener('click', () => {
+      comfortMode = comfortCheckbox.checked;
+      mustPassStations = throughStationsInput.value
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      ignoredLines = ignoreLinesInput.value
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      settingsModal.classList.remove('show');
+    });
+
+    settingsCancelBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('show');
+    });
+
+    /****************************************************
+     * 5) AUTOCOMPLETE
+     ****************************************************/
+    const startAutocomplete = document.getElementById('startAutocomplete');
+    const endAutocomplete   = document.getElementById('endAutocomplete');
+
+    // We use the station list from LINES
+    const stationSet = new Set();
+    for (const line in LINES) {
+      LINES[line].forEach(st => stationSet.add(st));
+    }
+    const allStations = [...stationSet].sort();
+
+    function setupAutocomplete(inputElem, listElem) {
+      let currentFocus = -1;
+      inputElem.addEventListener('input', function() {
+        const val = this.value.trim();
+        listElem.innerHTML = '';
+        if (!val) {
+          listElem.classList.remove('show');
+          return;
+        }
+        const matches = allStations.filter(s => s.toLowerCase().includes(val.toLowerCase()));
+        if (matches.length === 0) {
+          listElem.classList.remove('show');
+          return;
+        }
+        listElem.classList.add('show');
+        for (const st of matches) {
+          const item = document.createElement('div');
+          item.classList.add('autocomplete-item');
+          // highlight the matching portion
+          const idx = st.toLowerCase().indexOf(val.toLowerCase());
+          if (idx >= 0) {
+            const before = st.slice(0, idx);
+            const match = st.slice(idx, idx + val.length);
+            const after = st.slice(idx + val.length);
+            item.innerHTML = `${before}<strong>${match}</strong>${after}`;
+          } else {
+            item.textContent = st;
+          }
+          item.addEventListener('click', () => {
+            inputElem.value = st;
+            listElem.innerHTML = '';
+            listElem.classList.remove('show');
+            inputElem.focus();
+          });
+          listElem.appendChild(item);
+        }
+      });
+
+      inputElem.addEventListener('keydown', function(e) {
+        const items = listElem.querySelectorAll('.autocomplete-item');
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          currentFocus++;
+          if (currentFocus >= items.length) currentFocus = items.length - 1;
+          setActive(items);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          currentFocus--;
+          if (currentFocus < 0) currentFocus = 0;
+          setActive(items);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (currentFocus > -1) {
+            items[currentFocus].click();
+          }
+        } else if (e.key === 'Tab') {
+          if (items.length > 0) {
+            e.preventDefault();
+            currentFocus = 0;
+            items[currentFocus].click();
+          }
+        }
+      });
+
+      function setActive(items) {
+        if (!items) return;
+        items.forEach(i => i.style.background = '');
+        if (currentFocus >= 0 && currentFocus < items.length) {
+          items[currentFocus].style.background = '#555';
+        }
+      }
+
+      document.addEventListener('click', (ev) => {
+        if (ev.target !== inputElem) {
+          listElem.innerHTML = '';
+          listElem.classList.remove('show');
+        }
+      });
+    }
+
+    setupAutocomplete(document.getElementById('startStation'), startAutocomplete);
+    setupAutocomplete(document.getElementById('endStation'), endAutocomplete);
+
+    /****************************************************
+     * 6) "Vyhledat" => Calls the SERVER API
+     ****************************************************/
+    const searchBtn = document.getElementById('searchBtn');
+    searchBtn.addEventListener('click', async () => {
+      const startVal = document.getElementById('startStation').value.trim();
+      const endVal   = document.getElementById('endStation').value.trim();
+
+      // reset old results
+      summaryPara.textContent = '';
+      stationsList.innerHTML = '';
+      resultDiv.classList.remove('visible');
+      bottomPanel.classList.remove('visible');
+      timetableBody.innerHTML = '';
+      clearAllHighlights();
+
+      // Validate
+      if (!startVal || !endVal) {
+        alert("Zadejte prosím výchozí i cílovou stanici.");
+        return;
+      }
+      if (startVal === endVal) {
+        alert("Výchozí a cílová stanice jsou stejné.");
+        return;
+      }
+
+      // Build the query to our server API
+      // REPLACE the URL below with your real Azure endpoint:
+      const baseUrl = "https://idshv-router-fnbxgmg2ege5gfhd.germanywestcentral-01.azurewebsites.net/api/route";
+      const params = new URLSearchParams();
+      params.append("start", startVal);
+      params.append("end", endVal);
+      if (comfortMode) {
+        params.append("comfort", "1");
+      }
+      if (mustPassStations.length > 0) {
+        params.append("through", mustPassStations.join(","));
+      }
+      if (ignoredLines.length > 0) {
+        params.append("ignore", ignoredLines.join(","));
+      }
+
+      // Make the fetch request
+      try {
+        const res = await fetch(`${baseUrl}?${params.toString()}`);
+        const data = await res.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        // data.route => array of {station, line}
+        // Show the route
+        displayPath(data.route);
+        highlightPathInSchema(data.route);
+        displayTimetable(data.route);
+      } catch (err) {
+        console.error(err);
+        alert("Chyba při volání serveru. Zkuste to prosím znovu.");
+      }
+    });
+
+    /****************************************************
+     * 7) VYGENEROVAT SCHÉMA (horní panel)
+     ****************************************************/
+    const topPanel = document.getElementById('topPanel');
+
+    function generateLinesSchema() {
+      for (const lineName in LINES) {
+        const stArr = LINES[lineName];
+        const schemaTitle = document.createElement('div');
+        schemaTitle.classList.add('schema-title');
+        schemaTitle.textContent = `Linka ${lineName}`;
+        topPanel.appendChild(schemaTitle);
+
+        const lineBox = document.createElement('div');
+        lineBox.classList.add('line-box');
+
+        for (let i = 0; i < stArr.length; i++) {
+          const st = stArr[i];
+          const block = document.createElement('div');
+          block.classList.add('station-block');
+          block.dataset.station = st;
+          block.dataset.line = lineName;
+
+          // Mark if multiple lines cross here
+          let linesThatContainThisStation = 0;
+          for (const ln in LINES) {
+            if (LINES[ln].includes(st)) {
+              linesThatContainThisStation++;
+            }
+          }
+          block.dataset.multiple = (linesThatContainThisStation > 1) ? "true" : "false";
+          block.textContent = st;
+
+          // If the station is on multiple lines, show them
+          if (linesThatContainThisStation > 1) {
+            const stationLines = [];
+            for (const ln in LINES) {
+              if (LINES[ln].includes(st) && ln !== lineName) {
+                stationLines.push(ln);
+              }
+            }
+            if (stationLines.length > 0) {
+              const linesSpan = document.createElement('span');
+              linesSpan.classList.add('station-lines');
+              linesSpan.textContent = stationLines.join(", ");
+              block.appendChild(linesSpan);
+            }
+          }
+
+          lineBox.appendChild(block);
+
+          if (i < stArr.length - 1) {
+            const arrow = document.createElement('span');
+            arrow.classList.add('arrow');
+            arrow.textContent = '→';
+            lineBox.appendChild(arrow);
+          }
+        }
+        topPanel.appendChild(lineBox);
+      }
+    }
+    generateLinesSchema();
+
+    /****************************************************
+     * 8) OPTIONAL: "API" MODE VIA QUERY PARAMS (for older approach)
+     ****************************************************/
+
+    (function checkApiMode() {
+      // If someone calls ?api=1 in the query string, we do a server call, then show JSON
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('api')) {
+        document.body.innerHTML = '';
+        document.body.style.background = '#111';
+        document.body.style.color = '#fff';
+
+        const startVal = urlParams.get('start') || '';
+        const endVal   = urlParams.get('end') || '';
+        const comfortVal = urlParams.get('comfort');
+        comfortMode = (comfortVal === '1' || comfortVal === 'true');
+
+        const throughVal = urlParams.get('through') || '';
+        mustPassStations = throughVal.split(',').map(s => s.trim()).filter(s => s.length>0);
+
+        const ignoreVal = urlParams.get('ignore') || '';
+        ignoredLines = ignoreVal.split(',').map(s => s.trim()).filter(s => s.length>0);
+
+        // Validate
+        if (!startVal || !endVal) {
+          return showJson({ error: "Missing start or end station." });
+        }
+
+        // We do a fetch to the server
+        const baseUrl = "https://idshv-router-fnbxgmg2ege5gfhd.germanywestcentral-01.azurewebsites.net/api/route";
+        const params = new URLSearchParams();
+        params.append("start", startVal);
+        params.append("end", endVal);
+        if (comfortMode) params.append("comfort", "1");
+        if (mustPassStations.length > 0) params.append("through", mustPassStations.join(","));
+        if (ignoredLines.length > 0) params.append("ignore", ignoredLines.join(","));
+
+        fetch(`${baseUrl}?${params.toString()}`)
+          .then(r => r.json())
+          .then(data => {
+            showJson(data);
+          })
+          .catch(err => {
+            showJson({ error: "Server request failed: " + String(err) });
+          });
+
+        function showJson(obj) {
+          const json = JSON.stringify(obj, null, 2);
+          document.body.innerHTML = `<pre style="color:#fff;">${json}</pre>`;
+        }
+      }
+    })();
+
+  </script>
 </body>
 </html>
