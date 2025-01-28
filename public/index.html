@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HVgame Metro – IDSHV Router</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <h1>HVgame Metro – IDSHV Router</h1>
+  </header>
+
+  <main>
+    <!-- Left Panel: Search / Options -->
+    <div class="left-panel">
+      <div class="search-box">
+        <label for="startInput">Výchozí stanice (Start):</label>
+        <input type="text" id="startInput" placeholder="Např. Zvořany">
+
+        <label for="endInput">Cílová stanice (End):</label>
+        <input type="text" id="endInput" placeholder="Např. Vitjův ráj">
+
+        <label for="mustPassInput">Must pass through (optional):</label>
+        <input type="text" id="mustPassInput" placeholder="stanice oddělené čárkami">
+
+        <label for="ignoreLinesInput">Ignore lines (optional):</label>
+        <input type="text" id="ignoreLinesInput" placeholder="např. M4, M10">
+
+        <div class="mode-select">
+          <label>
+            <input type="radio" name="mode" value="speed" checked>
+            Speed (minimální počet stanic)
+          </label>
+          <label>
+            <input type="radio" name="mode" value="comfort">
+            Comfort (minimalizace přestupů)
+          </label>
+        </div>
+
+        <button id="searchBtn">Vyhledat / Search</button>
+      </div>
+
+      <div id="errorBox" class="error-box"></div>
+    </div>
+
+    <!-- Right Panel: Results -->
+    <div class="right-panel">
+      <div id="resultsContainer" class="results-container">
+        <h2>Výsledná trasa</h2>
+        <p id="summary"></p>
+        <ul id="stationsList"></ul>
+      </div>
+    </div>
+  </main>
+
+  <script src="./client.js"></script>
+</body>
+</html>
