@@ -436,286 +436,153 @@
   </style>
 </head>
 <body>
-  <header>HVgame Metro – Moderní vyhledávač s Nastavením</header>
-
-  <main>
-    <!-- LEVÝ PANEL -->
-    <div class="left-panel">
-      <div class="search-container">
-        <label for="startStation">Výchozí stanice:</label>
-        <div class="autocomplete">
-          <input type="text" id="startStation" placeholder="Aquapark Ondrovoda" autocomplete="off" />
-          <div class="autocomplete-list" id="startAutocomplete"></div>
+    <header>HVgame Metro – Moderní vyhledávač s Nastavením</header>
+  
+    <main>
+      <!-- LEVÝ PANEL -->
+      <div class="left-panel">
+        <div class="search-container">
+          <label for="startStation">Výchozí stanice:</label>
+          <div class="autocomplete">
+            <input type="text" id="startStation" placeholder="Aquapark Ondrovoda" autocomplete="off" />
+            <div class="autocomplete-list" id="startAutocomplete"></div>
+          </div>
+  
+          <label for="endStation">Cílová stanice:</label>
+          <div class="autocomplete">
+            <input type="text" id="endStation" placeholder="Vitjův ráj" autocomplete="off" />
+            <div class="autocomplete-list" id="endAutocomplete"></div>
+          </div>
+  
+          <div class="search-buttons">
+            <button id="searchBtn">Vyhledat</button>
+            <button id="settingsBtn">Nastavení</button>
+          </div>
         </div>
-
-        <label for="endStation">Cílová stanice:</label>
-        <div class="autocomplete">
-          <input type="text" id="endStation" placeholder="Vitjův ráj" autocomplete="off" />
-          <div class="autocomplete-list" id="endAutocomplete"></div>
-        </div>
-
-        <div class="search-buttons">
-          <button id="searchBtn">Vyhledat</button>
-          <button id="settingsBtn">Nastavení</button>
+  
+        <div id="result" class="result-container">
+          <h2>Seznam stanic cesty</h2>
+          <p id="summary"></p>
+          <ul id="stationsList" class="stations-list"></ul>
         </div>
       </div>
-
-      <div id="result" class="result-container">
-        <h2>Seznam stanic cesty</h2>
-        <p id="summary"></p>
-        <ul id="stationsList" class="stations-list"></ul>
+  
+      <!-- PRAVÝ PANEL: Horní = Schéma linek, Dolní = Timetable -->
+      <div class="right-panel">
+        <div class="top-panel" id="topPanel"></div>
+        <div class="bottom-panel" id="bottomPanel">
+          <div class="timetable-title" id="timetableTitle">Výsledná trasa</div>
+          <table class="timetable" id="timetable">
+            <thead>
+              <tr>
+                <th class="line-cell"></th>
+                <th>Č.</th>
+                <th>Stanice</th>
+                <th>Linka</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  
+    <!-- OKNO NASTAVENÍ -->
+    <div id="settingsModal">
+      <h2>Nastavení</h2>
+      <div class="settings-field">
+        <label>
+          <input type="checkbox" id="comfortCheckbox" />
+          Komfort (minimalizace přestupů)
+        </label>
+      </div>
+      <div class="settings-field">
+        <label for="throughStationsInput">Přes (stanice oddělené čárkou):</label>
+        <input type="text" id="throughStationsInput" placeholder="např. Hradní věž, Nádraží Město (S)" />
+      </div>
+      <div class="settings-field">
+        <label for="ignoreLinesInput">Ignoruj linku (oddělené čárkou):</label>
+        <input type="text" id="ignoreLinesInput" placeholder="např. M4, M10" />
+      </div>
+      <div class="settings-buttons">
+        <button class="save-btn" id="settingsSaveBtn">Uložit</button>
+        <button class="cancel-btn" id="settingsCancelBtn">Zavřít</button>
       </div>
     </div>
-
-    <!-- PRAVÝ PANEL: Horní = Schéma linek, Dolní = Timetable -->
-    <div class="right-panel">
-      <div class="top-panel" id="topPanel">
-        <!-- sem se vygeneruje modulární schéma linky -->
-      </div>
-
-      <div class="bottom-panel" id="bottomPanel">
-        <div class="timetable-title" id="timetableTitle">Výsledná trasa</div>
-        <table class="timetable" id="timetable">
-          <thead>
-            <tr>
-              <th class="line-cell"></th>
-              <th>Č.</th>
-              <th>Stanice</th>
-              <th>Linka</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </main>
-
-  <!-- OKNO NASTAVENÍ -->
-  <div id="settingsModal">
-    <h2>Nastavení</h2>
-
-    <div class="settings-field">
-      <label>
-        <input type="checkbox" id="comfortCheckbox" />
-        Komfort (minimalizace přestupů)
-      </label>
-    </div>
-
-    <div class="settings-field">
-      <label for="throughStationsInput">Přes (stanice oddělené čárkou):</label>
-      <input type="text" id="throughStationsInput" placeholder="např. Hradní věž, Nádraží Město (S)" />
-    </div>
-
-    <div class="settings-field">
-      <label for="ignoreLinesInput">Ignoruj linku (oddělené čárkou):</label>
-      <input type="text" id="ignoreLinesInput" placeholder="např. M4, M10" />
-    </div>
-
-    <div class="settings-buttons">
-      <button class="save-btn" id="settingsSaveBtn">Uložit</button>
-      <button class="cancel-btn" id="settingsCancelBtn">Zavřít</button>
-    </div>
-  </div>
 
   <script>
     /****************************************************
-     * 1) DATA LINEK (CELÁ PODOBA)
+     * 1) DATA LINEK
      ****************************************************/
     const LINES = {
       M1: [
-        "Zvořany",
-        "Dvory (Z)",
-        "Fontána přání",
-        "Ultra hlíny (Z)",
-        "Jezero Mílkov",
-        "Věznice Honzov",
-        "Spawn",
-        "Nádraží Město (S)",
-        "Diamantový dům",
-        "Úředníků",
-        "Honzův dům",
-        "Tinovské sedlo",
-        "Skalní",
-        "Horská planina",
-        "Dýňová (Z)",
-        "Podzemní řeka (S)"
+        "Zvořany","Dvory (Z)","Fontána přání","Ultra hlíny (Z)","Jezero Mílkov","Věznice Honzov","Spawn",
+        "Nádraží Město (S)","Diamantový dům","Úředníků","Honzův dům","Tinovské sedlo","Skalní",
+        "Horská planina","Dýňová (Z)","Podzemní řeka (S)"
       ],
       M2: [
-        "NC Švandovka",
-        "Federální věznice",
-        "Betonárna",
-        "Jožinská (Z)",
-        "Bažinská",
-        "Horská planina",
-        "Standardů",
-        "Honzův dům",
-        "Unifikace (Z)",
-        "Build battle",
-        "Survival (S)",
-        "Magistrála (Z)",
-        "Bany a unbany (Z)",
-        "Hornaté vršky",
-        "Jezero Mílkov",
-        "Luxusní villa (Z)",
-        "Hradní věž",
-        "Honzovo sídliště",
-        "Ubytovny (Z)",
-        "Jeskynní sídliště",
-        "Železárny Vitja",
-        "Kryptonu (Z)",
+        "NC Švandovka","Federální věznice","Betonárna","Jožinská (Z)","Bažinská","Horská planina",
+        "Standardů","Honzův dům","Unifikace (Z)","Build battle","Survival (S)","Magistrála (Z)",
+        "Bany a unbany (Z)","Hornaté vršky","Jezero Mílkov","Luxusní villa (Z)","Hradní věž",
+        "Honzovo sídliště","Ubytovny (Z)","Jeskynní sídliště","Železárny Vitja","Kryptonu (Z)",
         "JE Nuggetov"
       ],
-      M2a: [
-        "Unifikace (Z)",
-        "Severní město",
-        "Hlavní nádraží (S)",
-        "Spawn"
-      ],
+      M2a: ["Unifikace (Z)","Severní město","Hlavní nádraží (S)","Spawn"],
       M3: [
-        "Nádraží Město (S)",
-        "Pěkná jeskyně",
-        "Přírodní koupaliště",
-        "Jezero Mílkov",
-        "Patriotů (Z)",
-        "Prales Honzov (Z)",
-        "Vesnická pláň (Z)",
-        "Ve Vesnici"
+        "Nádraží Město (S)","Pěkná jeskyně","Přírodní koupaliště","Jezero Mílkov","Patriotů (Z)",
+        "Prales Honzov (Z)","Vesnická pláň (Z)","Ve Vesnici"
       ],
       M4: [
-        "Podzemní řeka (S)",
-        "Inženýrů",
-        "Skalní",
-        "Náměstí Svobody",
-        "Průsmyk",
-        "Rozhledna Nová čtvrť",
-        "Honzův dům",
-        "Honzův les",
-        "Veřejné prostory",
-        "Minecraft Got Talent",
-        "Pouštní (Z)",
-        "Pouštní řeka",
-        "Národní pláž"
+        "Podzemní řeka (S)","Inženýrů","Skalní","Náměstí Svobody","Průsmyk","Rozhledna Nová čtvrť",
+        "Honzův dům","Honzův les","Veřejné prostory","Minecraft Got Talent","Pouštní (Z)",
+        "Pouštní řeka","Národní pláž"
       ],
       M5: [
-        "Manfredziakow Centralny",
-        "Manfredziak Water park",
-        "Lotnisko Manfredziakow (S)",
-        "Port (S)",
-        "Hotel Morski",
-        "Historyczny Krecik",
-        "Galeria Milenium",
-        "Manfredziakow Centralny"
+        "Manfredziakow Centralny","Manfredziak Water park","Lotnisko Manfredziakow (S)",
+        "Port (S)","Hotel Morski","Historyczny Krecik","Galeria Milenium","Manfredziakow Centralny"
       ],
       M6: [
-        "Radiokomunikace (S)",
-        "Meandr",
-        "Expo town",
-        "Expo 2023 (S)",
-        "Inženýra Vitjy",
-        "NC Švandovka",
-        "Ošklivců",
-        "Aquapark Ondrovoda",
-        "Minecraft Got Talent",
-        "Národní pláž",
-        "Kreativní pláž",
-        "Přístav HVgame",
-        "Honzova sjezdovka - Imgoodov",
-        "Sídliště Jiřinov",
-        "Manfredziakow Centralny",
-        "Kořanov",
-        "Honza I.",
-        "Sídliště Naděje",
-        "Malá Rána",
-        "Honzův dům",
-        "Diamantový dům",
-        "Pěkná jeskyně",
-        "Honzov Airport (S)",
-        "Hradní věž",
-        "Fontána přání",
-        "Sídliště nad jámou",
+        "Radiokomunikace (S)","Meandr","Expo town","Expo 2023 (S)","Inženýra Vitjy","NC Švandovka",
+        "Ošklivců","Aquapark Ondrovoda","Minecraft Got Talent","Národní pláž","Kreativní pláž",
+        "Přístav HVgame","Honzova sjezdovka - Imgoodov","Sídliště Jiřinov","Manfredziakow Centralny",
+        "Kořanov","Honza I.","Sídliště Naděje","Malá Rána","Honzův dům","Diamantový dům",
+        "Pěkná jeskyně","Honzov Airport (S)","Hradní věž","Fontána přání","Sídliště nad jámou",
         "Plážovka"
       ],
       M8: [
-        "Honzova sjezdovka - Imgoodov",
-        "Plážní",
-        "Pobřežní (Z)",
-        "Imgoodovip - Centrum"
+        "Honzova sjezdovka - Imgoodov","Plážní","Pobřežní (Z)","Imgoodovip - Centrum"
       ],
       M9: [
-        "Vitjův ráj",
-        "Pouštní řeka",
-        "Písečné závody",
-        "Savanská (Z)",
-        "Sídliště Zátoka",
-        "Oceánská",
-        "Hotel Imgoodov (Z)",
-        "Plážní",
-        "Poloostrovní sídliště",
-        "Spojené ostrovy - Centrum",
-        "Vitjova villa - Pracovníků",
-        "Sídliště Jiřinov",
-        "Historický přístav",
-        "Přístavní vlečka",
-        "Manfredziakow Centralny",
-        "Serverovo údolí",
-        "Sídliště Prosperity",
-        "Manfredziakowa góra",
-        "Osiedle wschódnie",
-        "Elektrownia węglowa",
-        "Galeria Wschodnia"
+        "Vitjův ráj","Pouštní řeka","Písečné závody","Savanská (Z)","Sídliště Zátoka","Oceánská",
+        "Hotel Imgoodov (Z)","Plážní","Poloostrovní sídliště","Spojené ostrovy - Centrum",
+        "Vitjova villa - Pracovníků","Sídliště Jiřinov","Historický přístav","Přístavní vlečka",
+        "Manfredziakow Centralny","Serverovo údolí","Sídliště Prosperity","Manfredziakowa góra",
+        "Osiedle wschódnie","Elektrownia węglowa","Galeria Wschodnia"
       ],
       M9a: [
-        "Vitjova villa - Pracovníků",
-        "FC Vitjova villa (Z)",
-        "Vitjova villa"
+        "Vitjova villa - Pracovníků","FC Vitjova villa (Z)","Vitjova villa"
       ],
       M10: [
-        "Fontána přání",
-        "Boumova",
-        "Náměstí přejezdů",
-        "Włocławská (Z)",
-        "Zvořany",
-        "Luník 9",
-        "Skalnatá",
-        "Maine (Z)",
-        "Brněnská",
-        "Oganesjanova (Z)",
-        "Pirátů (Z)",
-        "Nový Nuggetov (Z)",
-        "Futurum",
-        "Tabule"
+        "Fontána přání","Boumova","Náměstí přejezdů","Włocławská (Z)","Zvořany","Luník 9","Skalnatá",
+        "Maine (Z)","Brněnská","Oganesjanova (Z)","Pirátů (Z)","Nový Nuggetov (Z)","Futurum","Tabule"
       ],
       M12: [
-        "Port (S)",
-        "Fabryka andezitu",
-        "Řízkový ráj",
-        "Mały kościół",
-        "Nowa ulica",
-        "Manfredziakow Centralny",
-        "Vitjova villa - Promenáda (Z)",
-        "Vitjova villa - Arboretum (Z)",
-        "Vitjova villa - Botanická (Z)",
-        "Vitjova villa",
-        "Vitjova villa - Rekreační (Z)",
-        "Prefabrikáty"
+        "Port (S)","Fabryka andezitu","Řízkový ráj","Mały kościół","Nowa ulica","Manfredziakow Centralny",
+        "Vitjova villa - Promenáda (Z)","Vitjova villa - Arboretum (Z)","Vitjova villa - Botanická (Z)",
+        "Vitjova villa","Vitjova villa - Rekreační (Z)","Prefabrikáty"
       ],
       M13: [
-        "Honzův dům",
-        "Vitjův ráj",
-        "Honzova sjezdovka - Imgoodov",
-        "Poloostrovní sídliště",
-        "Prefabrikáty"
+        "Honzův dům","Vitjův ráj","Honzova sjezdovka - Imgoodov","Poloostrovní sídliště","Prefabrikáty"
       ],
       M14: [
-        "Lotnisko Manfredziakow (S)",
-        "Manfredziakowo Nowe osiedle (S)",
-        "Sídliště Prosperity"
+        "Lotnisko Manfredziakow (S)","Manfredziakowo Nowe osiedle (S)","Sídliště Prosperity"
       ]
     };
 
     const lineColors = {
-      M1:"#FF8000",M2:"#00EEFF",M2a:"#00EEFF",M3:"#09FF00",M4:"#FF0000",M5:"#0011FF",M6:"#FFCE7A",
-      M8:"#57B6FF",M9:"#24BF8C",M9a:"#24BF8C",M10:"#C73A3A",M12:"#7A0000",M13:"#F700FF",M14:"#8800FF"
+      M1:"#FF8000",M2:"#00EEFF",M2a:"#00EEFF",M3:"#09FF00",M4:"#FF0000",M5:"#0011FF",
+      M6:"#FFCE7A",M8:"#57B6FF",M9:"#24BF8C",M9a:"#24BF8C",M10:"#C73A3A",M12:"#7A0000",
+      M13:"#F700FF",M14:"#8800FF"
     };
 
     /****************************************************
@@ -743,9 +610,8 @@
     let ignoredLines = [];
 
     /****************************************************
-     * 4) BFS FUNKCE (MIN STANIC, MIN PŘESTUPŮ)
+     * 4) BFS FUNKCE
      ****************************************************/
-    // Standard BFS: minimalizace počtu stanic
     function bfsMinStations(start, end, usableGraph) {
       if (!usableGraph[start] || !usableGraph[end]) return null;
       const queue = [start];
@@ -768,33 +634,28 @@
       return null;
     }
 
-    // BFS komfort: minimalizace přestupů
     function bfsMinTransfers(start, end, usableGraph) {
       if (!usableGraph[start] || !usableGraph[end]) return null;
-      // queue = fronta { station, lineUsed, transferCount }
       const queue = [];
-      const visited = new Map(); // klíč = "stanice|lineUsed", hodnota = transferCount
+      const visited = new Map();
       queue.push({ station: start, lineUsed: null, transferCount: 0 });
       visited.set(`${start}|null`, 0);
 
       const parents = {};
-
-      function setParent(childSt, childLn, pc) {
-        // pc = parent object
+      function setParent(childSt, childLn, parentObj) {
         parents[childSt + "|" + childLn] = {
-          pSt: pc.station,
-          pLn: pc.lineUsed
+          pSt: parentObj.station,
+          pLn: parentObj.lineUsed
         };
       }
 
       while (queue.length > 0) {
-        // pseudo-priority => sort by transferCount
+        // sort by transferCount to simulate priority
         queue.sort((a, b) => a.transferCount - b.transferCount);
         const current = queue.shift();
         if (current.station === end) {
           return reconstructPathTransfers(parents, end, current.lineUsed);
         }
-        // sousedé
         for (const edge of usableGraph[current.station]) {
           const nSt = edge.station;
           const nLn = edge.line;
@@ -811,7 +672,6 @@
       return null;
     }
 
-    // Rekonstrukce BFS (min stanic)
     function reconstructPath(parents, end) {
       const path = [];
       let cur = end;
@@ -827,14 +687,12 @@
         }
         result.push({ station: path[i], line: usedLine });
       }
-      // OPRAVA: pokud první stanice line===null, přebere linku od [1]
       if (result.length > 1 && result[0].line === null) {
         result[0].line = result[1].line;
       }
       return result;
     }
 
-    // Rekonstrukce BFS (min přestupů)
     function reconstructPathTransfers(parents, end, endLine) {
       const path = [];
       let cSt = end, cLn = endLine;
@@ -845,14 +703,12 @@
         cSt = pr.pSt;
         cLn = pr.pLn;
       }
-      // OPRAVA: stejná logika => pokud [0].line===null a existuje [1], zkopíruj
       if (path.length > 1 && path[0].line === null) {
         path[0].line = path[1].line;
       }
       return path;
     }
 
-    // MultiSegment BFS (přes mustPassStations)
     function multiSegmentPath(stops, useGraph, comfort) {
       let finalPath = [];
       for (let i = 0; i < stops.length - 1; i++) {
@@ -871,7 +727,6 @@
       return finalPath;
     }
 
-    // Usable graph ignoring certain lines
     function buildUsableGraph(ignored) {
       const newGraph = {};
       for (const st in graph) {
@@ -886,7 +741,7 @@
     }
 
     /****************************************************
-     * 5) UI – Zobrazit BFS výsledek
+     * 5) UI – Zobrazit výsledek
      ****************************************************/
     const resultDiv = document.getElementById('result');
     const summaryPara = document.getElementById('summary');
@@ -910,7 +765,7 @@
     }
 
     /****************************************************
-     * 6) MODULÁRNÍ SCHÉMA (horní panel)
+     * 6) MODULÁRNÍ SCHÉMA
      ****************************************************/
     const topPanel = document.getElementById('topPanel');
     function clearAllHighlights() {
@@ -941,7 +796,7 @@
     }
 
     /****************************************************
-     * 7) TIMETABLE (dolní panel)
+     * 7) TIMETABLE
      ****************************************************/
     const bottomPanel = document.getElementById('bottomPanel');
     const timetableTitle = document.getElementById('timetableTitle');
@@ -953,31 +808,24 @@
 
       for (let i = 0; i < path.length; i++) {
         const tr = document.createElement('tr');
-        // 1) sloupec s linkou
+
         const tdLineCell = document.createElement('td');
         tdLineCell.classList.add('line-cell');
         const segDiv = document.createElement('div');
         segDiv.classList.add('line-segment');
         const ln = path[i].line;
-        if (ln) {
-          segDiv.style.background = lineColors[ln] || '#999';
-        } else {
-          segDiv.style.background = '#444';
-        }
+        segDiv.style.background = ln ? (lineColors[ln] || '#999') : '#444';
         tdLineCell.appendChild(segDiv);
         tr.appendChild(tdLineCell);
 
-        // 2) pořadí
         const tdIndex = document.createElement('td');
         tdIndex.textContent = (i + 1);
         tr.appendChild(tdIndex);
 
-        // 3) stanice
         const tdStation = document.createElement('td');
         tdStation.textContent = path[i].station;
         tr.appendChild(tdStation);
 
-        // 4) linka
         const tdLink = document.createElement('td');
         tdLink.textContent = ln ? ln : "";
         tr.appendChild(tdLink);
@@ -1112,7 +960,8 @@
     searchBtn.addEventListener('click', () => {
       const startVal = document.getElementById('startStation').value.trim();
       const endVal = document.getElementById('endStation').value.trim();
-      // reset starého
+
+      // reset old
       summaryPara.textContent = '';
       stationsList.innerHTML = '';
       resultDiv.classList.remove('visible');
@@ -1129,26 +978,22 @@
         return;
       }
 
-      // postavit usableGraph
       const usableGraph = buildUsableGraph(ignoredLines);
-
-      // mustPass => [start, ... mustPass..., end]
       const stops = [startVal, ...mustPassStations, endVal];
       let path = multiSegmentPath(stops, usableGraph, comfortMode);
       if (!path) {
         alert("Trasu nelze najít (možná ignorujete linku, která je potřeba?).");
         return;
       }
-      // zobrazení
+      // display
       displayPath(path);
       highlightPathInSchema(path);
       displayTimetable(path);
     });
 
     /****************************************************
-     * 11) VYGENERUJEME SCHÉMA LINEK (horní)
+     * 11) VYGENEROVAT SCHÉMA
      ****************************************************/
-    // abychom věděli, jestli je stanice na více linkách
     const stationLinesMap = {};
     for (const lineName in LINES) {
       const stArr = LINES[lineName];
@@ -1197,12 +1042,87 @@
             lineBox.appendChild(arrow);
           }
         }
-
         topPanel.appendChild(lineBox);
       }
     }
-    // Zavoláme hned:
     generateLinesSchema();
+
+
+    /****************************************************
+     * 12) NEW/CHANGED: "API" MODE VIA QUERY PARAMS
+     ****************************************************/
+
+    (function checkApiMode() {
+      // Grab query params
+      const urlParams = new URLSearchParams(window.location.search);
+      // If there's an `api` param, we do "API" response (JSON) and skip normal UI
+      if (urlParams.has('api')) {
+        // Hide normal UI to avoid flicker
+        document.body.innerHTML = '';
+        document.body.style.background = '#111';
+        document.body.style.color = '#fff';
+
+        // read start / end from query
+        const startVal = urlParams.get('start') || '';
+        const endVal   = urlParams.get('end') || '';
+
+        // optionally read if comfort mode was set: `&comfort=1`
+        const comfortVal = urlParams.get('comfort');
+        comfortMode = (comfortVal === '1' || comfortVal === 'true');
+
+        // read pass‐through stations: e.g. `&through=StationA,StationB`
+        const throughVal = urlParams.get('through') || '';
+        mustPassStations = throughVal
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        // read ignored lines: e.g. `&ignore=M4,M10`
+        const ignoreVal = urlParams.get('ignore') || '';
+        ignoredLines = ignoreVal
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        // If missing start or end, respond with an error
+        if (!startVal || !endVal) {
+          const errorData = { error: "Missing start or end station." };
+          return showJson(errorData);
+        }
+        if (!graph[startVal] || !graph[endVal]) {
+          const errorData = { error: "Invalid station name(s)." };
+          return showJson(errorData);
+        }
+        if (startVal === endVal) {
+          const errorData = { error: "Start and End are the same." };
+          return showJson(errorData);
+        }
+
+        // Build graph ignoring lines
+        const usableGraph = buildUsableGraph(ignoredLines);
+        // Create array of stops [start, ...through..., end]
+        const stops = [startVal, ...mustPassStations, endVal];
+        // BFS
+        const route = multiSegmentPath(stops, usableGraph, comfortMode);
+        if (!route) {
+          return showJson({ error: "No route found with current constraints." });
+        }
+        // Return route as JSON
+        showJson({
+          route,
+          stationCount: route.length,
+          comfortMode,
+          mustPassStations,
+          ignoredLines
+        });
+      }
+
+      function showJson(dataObj) {
+        // Display as JSON and stop
+        const json = JSON.stringify(dataObj, null, 2);
+        document.body.innerHTML = `<pre style="color: #fff;">${json}</pre>`;
+      }
+    })();
   </script>
 </body>
 </html>
