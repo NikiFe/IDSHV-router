@@ -3,81 +3,81 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// ------------------------------
-// 1) YOUR STATION DATA + BFS LOGIC
-// ------------------------------
+/********************************************************
+ * 0) OPENAPI NOTE
+ *   This code matches OpenAPI 3.1.0 (version 2.0.3) 
+ *   as specified in your request.
+ ********************************************************/
+
+/********************************************************
+ * 1) STATION DATA AND GRAPH BUILDING
+ ********************************************************/
 const LINES = {
-    M1: [
-      "Zvořany","Dvory (Z)","Fontána přání","Ultra hlíny (Z)","Jezero Mílkov","Věznice Honzov","Spawn",
-      "Nádraží Město (S)","Diamantový dům","Úředníků","Honzův dům","Tinovské sedlo","Skalní",
-      "Horská planina","Dýňová (Z)","Podzemní řeka (S)"
-    ],
-    M2: [
-      "NC Švandovka","Federální věznice","Betonárna","Jožinská (Z)","Bažinská","Horská planina",
-      "Standardů","Honzův dům","Unifikace (Z)","Build battle","Survival (S)","Magistrála (Z)",
-      "Bany a unbany (Z)","Hornaté vršky","Jezero Mílkov","Luxusní villa (Z)","Hradní věž",
-      "Honzovo sídliště","Ubytovny (Z)","Jeskynní sídliště","Železárny Vitja","Kryptonu (Z)",
-      "JE Nuggetov"
-    ],
-    M2a: ["Unifikace (Z)","Severní město","Hlavní nádraží (S)","Spawn"],
-    M3: [
-      "Nádraží Město (S)","Pěkná jeskyně","Přírodní koupaliště","Jezero Mílkov","Patriotů (Z)",
-      "Prales Honzov (Z)","Vesnická pláň (Z)","Ve Vesnici"
-    ],
-    M4: [
-      "Podzemní řeka (S)","Inženýrů","Skalní","Náměstí Svobody","Průsmyk","Rozhledna Nová čtvrť",
-      "Honzův dům","Honzův les","Veřejné prostory","Minecraft Got Talent","Pouštní (Z)",
-      "Pouštní řeka","Národní pláž"
-    ],
-    M5: [
-      "Manfredziakow Centralny","Manfredziak Water park","Lotnisko Manfredziakow (S)",
-      "Port (S)","Hotel Morski","Historyczny Krecik","Galeria Milenium","Manfredziakow Centralny"
-    ],
-    M6: [
-      "Radiokomunikace (S)","Meandr","Expo town","Expo 2023 (S)","Inženýra Vitjy","NC Švandovka",
-      "Ošklivců","Aquapark Ondrovoda","Minecraft Got Talent","Národní pláž","Kreativní pláž",
-      "Přístav HVgame","Honzova sjezdovka - Imgoodov","Sídliště Jiřinov","Manfredziakow Centralny",
-      "Kořanov","Honza I.","Sídliště Naděje","Malá Rána","Honzův dům","Diamantový dům",
-      "Pěkná jeskyně","Honzov Airport (S)","Hradní věž","Fontána přání","Sídliště nad jámou",
-      "Plážovka"
-    ],
-    M8: [
-      "Honzova sjezdovka - Imgoodov","Plážní","Pobřežní (Z)","Imgoodovip - Centrum"
-    ],
-    M9: [
-      "Vitjův ráj","Pouštní řeka","Písečné závody","Savanská (Z)","Sídliště Zátoka","Oceánská",
-      "Hotel Imgoodov (Z)","Plážní","Poloostrovní sídliště","Spojené ostrovy - Centrum",
-      "Vitjova villa - Pracovníků","Sídliště Jiřinov","Historický přístav","Přístavní vlečka",
-      "Manfredziakow Centralny","Serverovo údolí","Sídliště Prosperity","Manfredziakowa góra",
-      "Osiedle wschódnie","Elektrownia węglowa","Galeria Wschodnia"
-    ],
-    M9a: [
-      "Vitjova villa - Pracovníků","FC Vitjova villa (Z)","Vitjova villa"
-    ],
-    M10: [
-      "Fontána přání","Boumova","Náměstí přejezdů","Włocławská (Z)","Zvořany","Luník 9","Skalnatá",
-      "Maine (Z)","Brněnská","Oganesjanova (Z)","Pirátů (Z)","Nový Nuggetov (Z)","Futurum","Tabule"
-    ],
-    M12: [
-      "Port (S)","Fabryka andezitu","Řízkový ráj","Mały kościół","Nowa ulica","Manfredziakow Centralny",
-      "Vitjova villa - Promenáda (Z)","Vitjova villa - Arboretum (Z)","Vitjova villa - Botanická (Z)",
-      "Vitjova villa","Vitjova villa - Rekreační (Z)","Prefabrikáty"
-    ],
-    M13: [
-      "Honzův dům","Vitjův ráj","Honzova sjezdovka - Imgoodov","Poloostrovní sídliště","Prefabrikáty"
-    ],
-    M14: [
-      "Lotnisko Manfredziakow (S)","Manfredziakowo Nowe osiedle (S)","Sídliště Prosperity"
-    ]
-  };
+  M1: [
+    "Zvořany","Dvory (Z)","Fontána přání","Ultra hlíny (Z)","Jezero Mílkov","Věznice Honzov","Spawn",
+    "Nádraží Město (S)","Diamantový dům","Úředníků","Honzův dům","Tinovské sedlo","Skalní",
+    "Horská planina","Dýňová (Z)","Podzemní řeka (S)"
+  ],
+  M2: [
+    "NC Švandovka","Federální věznice","Betonárna","Jožinská (Z)","Bažinská","Horská planina",
+    "Standardů","Honzův dům","Unifikace (Z)","Build battle","Survival (S)","Magistrála (Z)",
+    "Bany a unbany (Z)","Hornaté vršky","Jezero Mílkov","Luxusní villa (Z)","Hradní věž",
+    "Honzovo sídliště","Ubytovny (Z)","Jeskynní sídliště","Železárny Vitja","Kryptonu (Z)",
+    "JE Nuggetov"
+  ],
+  M2a: [ "Unifikace (Z)","Severní město","Hlavní nádraží (S)","Spawn" ],
+  M3: [
+    "Nádraží Město (S)","Pěkná jeskyně","Přírodní koupaliště","Jezero Mílkov","Patriotů (Z)",
+    "Prales Honzov (Z)","Vesnická pláň (Z)","Ve Vesnici"
+  ],
+  M4: [
+    "Podzemní řeka (S)","Inženýrů","Skalní","Náměstí Svobody","Průsmyk","Rozhledna Nová čtvrť",
+    "Honzův dům","Honzův les","Veřejné prostory","Minecraft Got Talent","Pouštní (Z)",
+    "Pouštní řeka","Národní pláž"
+  ],
+  M5: [
+    "Manfredziakow Centralny","Manfredziak Water park","Lotnisko Manfredziakow (S)",
+    "Port (S)","Hotel Morski","Historyczny Krecik","Galeria Milenium","Manfredziakow Centralny"
+  ],
+  M6: [
+    "Radiokomunikace (S)","Meandr","Expo town","Expo 2023 (S)","Inženýra Vitjy","NC Švandovka",
+    "Ošklivců","Aquapark Ondrovoda","Minecraft Got Talent","Národní pláž","Kreativní pláž",
+    "Přístav HVgame","Honzova sjezdovka - Imgoodov","Sídliště Jiřinov","Manfredziakow Centralny",
+    "Kořanov","Honza I.","Sídliště Naděje","Malá Rána","Honzův dům","Diamantový dům",
+    "Pěkná jeskyně","Honzov Airport (S)","Hradní věž","Fontána přání","Sídliště nad jámou",
+    "Plážovka"
+  ],
+  M8: [
+    "Honzova sjezdovka - Imgoodov","Plážní","Pobřežní (Z)","Imgoodovip - Centrum"
+  ],
+  M9: [
+    "Vitjův ráj","Pouštní řeka","Písečné závody","Savanská (Z)","Sídliště Zátoka","Oceánská",
+    "Hotel Imgoodov (Z)","Plážní","Poloostrovní sídliště","Spojené ostrovy - Centrum",
+    "Vitjova villa - Pracovníků","Sídliště Jiřinov","Historický přístav","Přístavní vlečka",
+    "Manfredziakow Centralny","Serverovo údolí","Sídliště Prosperity","Manfredziakowa góra",
+    "Osiedle wschódnie","Elektrownia węglowa","Galeria Wschodnia"
+  ],
+  M9a: [
+    "Vitjova villa - Pracovníků","FC Vitjova villa (Z)","Vitjova villa"
+  ],
+  M10: [
+    "Fontána přání","Boumova","Náměstí přejezdů","Włocławská (Z)","Zvořany","Luník 9","Skalnatá",
+    "Maine (Z)","Brněnská","Oganesjanova (Z)","Pirátů (Z)","Nový Nuggetov (Z)","Futurum","Tabule"
+  ],
+  M12: [
+    "Port (S)","Fabryka andezitu","Řízkový ráj","Mały kościół","Nowa ulica","Manfredziakow Centralny",
+    "Vitjova villa - Promenáda (Z)","Vitjova villa - Arboretum (Z)","Vitjova villa - Botanická (Z)",
+    "Vitjova villa","Vitjova villa - Rekreační (Z)","Prefabrikáty"
+  ],
+  M13: [
+    "Honzův dům","Vitjův ráj","Honzova sjezdovka - Imgoodov","Poloostrovní sídliště","Prefabrikáty"
+  ],
+  M14: [
+    "Lotnisko Manfredziakow (S)","Manfredziakowo Nowe osiedle (S)","Sídliště Prosperity"
+  ]
+};
 
-  const lineColors = {
-    M1:"#FF8000",M2:"#00EEFF",M2a:"#00EEFF",M3:"#09FF00",M4:"#FF0000",M5:"#0011FF",
-    M6:"#FFCE7A",M8:"#57B6FF",M9:"#24BF8C",M9a:"#24BF8C",M10:"#C73A3A",M12:"#7A0000",
-    M13:"#F700FF",M14:"#8800FF"
-  };
-
-// We'll build a global graph
+// Build an adjacency graph
 const graph = {};
 function addEdge(a, b, line) {
   if (!graph[a]) graph[a] = [];
@@ -86,17 +86,18 @@ function addEdge(a, b, line) {
   graph[b].push({ station: a, line });
 }
 
-for (const ln in LINES) {
-  const stArr = LINES[ln];
-  for (let i = 0; i < stArr.length - 1; i++) {
-    addEdge(stArr[i], stArr[i + 1], ln);
+// Populate the graph
+for (const lineName in LINES) {
+  const stations = LINES[lineName];
+  for (let i = 0; i < stations.length - 1; i++) {
+    addEdge(stations[i], stations[i+1], lineName);
   }
 }
 
 /********************************************************
- * 2) BFS LOGIC
+ * 2) BFS LOGIC (MIN STATIONS OR MIN TRANSFERS)
  ********************************************************/
-// BFS (min stations)
+// BFS for min stations
 function bfsMinStations(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [start];
@@ -119,7 +120,7 @@ function bfsMinStations(start, end, usableGraph) {
   return null;
 }
 
-// BFS (min transfers)
+// BFS for min transfers
 function bfsMinTransfers(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [];
@@ -136,7 +137,6 @@ function bfsMinTransfers(start, end, usableGraph) {
   }
 
   while (queue.length > 0) {
-    // sort by how many transfers so far
     queue.sort((a,b) => a.transferCount - b.transferCount);
     const current = queue.shift();
     if (current.station === end) {
@@ -146,15 +146,15 @@ function bfsMinTransfers(start, end, usableGraph) {
       const nSt = edge.station;
       const nLn = edge.line;
       const isTransfer = (current.lineUsed && current.lineUsed !== nLn) ? 1 : 0;
-      const nextTransfers = current.transferCount + isTransfer;
+      const newT = current.transferCount + isTransfer;
 
       const key = `${nSt}|${nLn}`;
-      if (!visited.has(key) || visited.get(key) > nextTransfers) {
-        visited.set(key, nextTransfers);
+      if (!visited.has(key) || visited.get(key) > newT) {
+        visited.set(key, newT);
         queue.push({
           station: nSt,
           lineUsed: nLn,
-          transferCount: nextTransfers
+          transferCount: newT
         });
         setParent(nSt, nLn, current);
       }
@@ -163,7 +163,7 @@ function bfsMinTransfers(start, end, usableGraph) {
   return null;
 }
 
-// Reconstruct BFS path
+// Reconstruct path (min stations)
 function reconstructPath(parents, end) {
   const path = [];
   let cur = end;
@@ -183,6 +183,7 @@ function reconstructPath(parents, end) {
   return result;
 }
 
+// Reconstruct path (min transfers)
 function reconstructPathTransfers(parents, end, endLine) {
   const path = [];
   let cSt = end, cLn = endLine;
@@ -199,7 +200,9 @@ function reconstructPathTransfers(parents, end, endLine) {
   return path;
 }
 
-// Exclude lines
+/********************************************************
+ * 3) IGNORE LINES & MUST-PASS STATIONS
+ ********************************************************/
 function buildUsableGraph(ignoredLines) {
   const newGraph = {};
   for (const station in graph) {
@@ -213,12 +216,12 @@ function buildUsableGraph(ignoredLines) {
   return newGraph;
 }
 
-// If we must pass through certain stations, BFS each segment
+// BFS segment by segment if must pass certain stations
 function multiSegmentPath(stops, useGraph, comfort) {
   let finalPath = [];
   for (let i = 0; i < stops.length - 1; i++) {
     const segStart = stops[i];
-    const segEnd   = stops[i+1];
+    const segEnd   = stops[i + 1];
     let partial;
     if (!comfort) {
       partial = bfsMinStations(segStart, segEnd, useGraph);
@@ -233,16 +236,15 @@ function multiSegmentPath(stops, useGraph, comfort) {
 }
 
 /********************************************************
- * 3) STATIC FILES
+ * 4) SERVE STATIC FILES
  ********************************************************/
-// If you have a front-end in /public, serve it:
 app.use(express.static(path.join(__dirname, 'public')));
 
 /********************************************************
- * 4) /api/route ENDPOINT
- *    - Updated to match the new OpenAPI 3.1.0 spec
+ * 5) /api/route ENDPOINT (OpenAPI 3.1.0 / v2.0.3)
  ********************************************************/
 app.get('/api/route', (req, res) => {
+  // parse query params
   const startVal = req.query.start;
   const endVal   = req.query.end;
   const comfort  = (req.query.comfort === '1' || req.query.comfort === 'true');
@@ -259,39 +261,36 @@ app.get('/api/route', (req, res) => {
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
-  // Validate according to the OpenAPI parameters
+  // validations
   if (!startVal || !endVal) {
-    // 400 - invalid request
-    return res.status(400).json({
-      error: "Missing start or end station."
-    });
+    // 400 if missing
+    res.type('application/json');
+    return res.status(400).json({ error: "Missing start or end station." });
   }
   if (!graph[startVal] || !graph[endVal]) {
-    return res.status(400).json({
-      error: "Invalid station name(s)."
-    });
+    res.type('application/json');
+    return res.status(400).json({ error: "Invalid station name(s)." });
   }
   if (startVal === endVal) {
-    return res.status(400).json({
-      error: "Start and end are the same."
-    });
+    res.type('application/json');
+    return res.status(400).json({ error: "Start and end are the same." });
   }
 
-  // Build a graph ignoring lines (if any)
+  // build graph ignoring certain lines
   const usableGraph = buildUsableGraph(ignoredLines);
 
-  // BFS with must-pass stations
+  // BFS with must-pass
   const stops = [startVal, ...mustPassStations, endVal];
   const route = multiSegmentPath(stops, usableGraph, comfort);
 
   if (!route) {
-    // 404 - no route found
-    return res.status(404).json({
-      error: "No route found with current constraints."
-    });
+    // 404 if no route found
+    res.type('application/json');
+    return res.status(404).json({ error: "No route found with current constraints." });
   }
 
-  // 200 - success
+  // success (200) with route data
+  res.type('application/json');
   return res.status(200).json({
     route,
     stationCount: route.length,
@@ -302,7 +301,7 @@ app.get('/api/route', (req, res) => {
 });
 
 /********************************************************
- * 5) START SERVER
+ * 6) START THE SERVER
  ********************************************************/
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
