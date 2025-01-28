@@ -77,33 +77,27 @@ const LINES = {
     M13:"#F700FF",M14:"#8800FF"
   };
 
-// We'll build a global graph
+// Build the graph
 const graph = {};
-
 function addEdge(a, b, line) {
   if (!graph[a]) graph[a] = [];
   if (!graph[b]) graph[b] = [];
   graph[a].push({ station: b, line });
   graph[b].push({ station: a, line });
 }
-
-// Initialize the graph from LINES
-for (const lineName in LINES) {
-  const stations = LINES[lineName];
-  for (let i = 0; i < stations.length - 1; i++) {
-    addEdge(stations[i], stations[i+1], lineName);
+for (const ln in LINES) {
+  const arr = LINES[ln];
+  for (let i = 0; i < arr.length - 1; i++) {
+    addEdge(arr[i], arr[i+1], ln);
   }
 }
 
-/********************************************************
- * 2) BFS LOGIC: MIN STATIONS OR MIN TRANSFERS
- ********************************************************/
+// BFS logic (minimize station count)
 function bfsMinStations(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [start];
   const visited = new Set([start]);
   const parents = { [start]: { parent: null, lineUsed: null } };
-
   while (queue.length > 0) {
     const current = queue.shift();
     if (current === end) {
@@ -120,6 +114,7 @@ function bfsMinStations(start, end, usableGraph) {
   return null;
 }
 
+// BFS logic (minimize transfers)
 function bfsMinTransfers(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [];
@@ -136,27 +131,22 @@ function bfsMinTransfers(start, end, usableGraph) {
   }
 
   while (queue.length > 0) {
-    // Sort by transferCount
+    // Sort by transferCount (rough priority queue)
     queue.sort((a,b) => a.transferCount - b.transferCount);
     const current = queue.shift();
     if (current.station === end) {
       return reconstructPathTransfers(parents, end, current.lineUsed);
     }
     for (const edge of usableGraph[current.station]) {
-      const nextSt = edge.station;
-      const nextLn = edge.line;
-      const isTransfer = (current.lineUsed && current.lineUsed !== nextLn) ? 1 : 0;
-      const newTransferCount = current.transferCount + isTransfer;
-
-      const key = `${nextSt}|${nextLn}`;
-      if (!visited.has(key) || visited.get(key) > newTransferCount) {
-        visited.set(key, newTransferCount);
-        queue.push({
-          station: nextSt,
-          lineUsed: nextLn,
-          transferCount: newTransferCount
-        });
-        setParent(nextSt, nextLn, current);
+      const nSt = edge.station;
+      const nLn = edge.line;
+      const isTransfer = (current.lineUsed && current.lineUsed !== nLn) ? 1 : 0;
+      const newTransfers = current.transferCount + isTransfer;
+      const nKey = `${nSt}|${nLn}`;
+      if (!visited.has(nKey) || visited.get(nKey) > newTransfers) {
+        visited.set(nKey, newTransfers);
+        queue.push({ station: nSt, lineUsed: nLn, transferCount: newTransfers });
+        setParent(nSt, nLn, current);
       }
     }
   }
@@ -172,18 +162,16 @@ function reconstructPath(parents, end) {
   }
   const result = [];
   for (let i = 0; i < path.length; i++) {
-    let usedLine = null;
-    if (i > 0) {
-      usedLine = parents[path[i]].lineUsed;
-    }
-    result.push({ station: path[i], line: usedLine });
+    let ln = null;
+    if (i>0) ln = parents[path[i]].lineUsed;
+    result.push({ station: path[i], line: ln });
   }
+  // fix first line if needed
   if (result.length > 1 && result[0].line === null) {
     result[0].line = result[1].line;
   }
   return result;
 }
-
 function reconstructPathTransfers(parents, end, endLine) {
   const path = [];
   let cSt = end, cLn = endLine;
@@ -200,22 +188,24 @@ function reconstructPathTransfers(parents, end, endLine) {
   return path;
 }
 
+// Build usable graph ignoring lines
 function buildUsableGraph(ignoredLines) {
   const newGraph = {};
-  for (const station in graph) {
-    newGraph[station] = [];
-    for (const edge of graph[station]) {
+  for (const st in graph) {
+    newGraph[st] = [];
+    for (const edge of graph[st]) {
       if (!ignoredLines.includes(edge.line)) {
-        newGraph[station].push({ ...edge });
+        newGraph[st].push({ ...edge });
       }
     }
   }
   return newGraph;
 }
 
+// Multi-segment BFS if user wants to pass through stations
 function multiSegmentPath(stops, useGraph, comfort) {
   let finalPath = [];
-  for (let i = 0; i < stops.length - 1; i++) {
+  for (let i=0; i<stops.length-1; i++) {
     const segStart = stops[i];
     const segEnd   = stops[i+1];
     let partial = null;
@@ -225,72 +215,80 @@ function multiSegmentPath(stops, useGraph, comfort) {
       partial = bfsMinTransfers(segStart, segEnd, useGraph);
     }
     if (!partial) return null;
-    if (i > 0) partial.shift(); // avoid duplicating intermediate
+    if (i>0) partial.shift(); // avoid duplicating the intermediate station
     finalPath = finalPath.concat(partial);
   }
   return finalPath;
 }
 
-/********************************************************
- * 3) SERVE STATIC FILES
- ********************************************************/
+// ------------------------------
+// 2) STATIC FILES
+// ------------------------------
 app.use(express.static(path.join(__dirname, 'public')));
 
-/********************************************************
- * 4) /api/route ENDPOINT
- ********************************************************/
+// ------------------------------
+// 3) API ENDPOINT
+// ------------------------------
 app.get('/api/route', (req, res) => {
-  const startVal = req.query.start;
-  const endVal   = req.query.end;
-  const comfort  = (req.query.comfort === '1' || req.query.comfort === 'true');
-
-  const throughVal = req.query.through || '';
-  const mustPassStations = throughVal
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
-
-  const ignoreVal = req.query.ignore || '';
-  const ignoredLines = ignoreVal
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
-
-  // Validate
-  if (!startVal || !endVal) {
-    return res.json({ error: 'Missing start or end station.' });
-  }
-  if (!graph[startVal] || !graph[endVal]) {
-    return res.json({ error: 'Invalid station name(s).' });
-  }
-  if (startVal === endVal) {
-    return res.json({ error: 'Start and end are the same.' });
-  }
-
-  // Build graph ignoring lines
-  const usableGraph = buildUsableGraph(ignoredLines);
-
-  // BFS with optional must-pass
-  const stops = [startVal, ...mustPassStations, endVal];
-  const route = multiSegmentPath(stops, usableGraph, comfort);
-
-  if (!route) {
-    return res.json({ error: 'No route found with current constraints.' });
-  }
-
-  return res.json({
-    route,
-    stationCount: route.length,
-    comfortMode: comfort,
-    mustPassStations,
-    ignoredLines
+    try {
+      const startVal = req.query.start;
+      const endVal = req.query.end;
+      const comfort = (req.query.comfort === '1' || req.query.comfort === 'true');
+  
+      // Optional parameters
+      const through = req.query.through || '';
+      const mustPassStations = through
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+  
+      const ignore = req.query.ignore || '';
+      const ignoredLines = ignore
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+  
+      // Input validation
+      if (!startVal || !endVal) {
+        return res.status(400).json({ error: 'Missing start or end station.' });
+      }
+      if (!graph[startVal] || !graph[endVal]) {
+        return res.status(400).json({ error: 'Invalid station name(s).' });
+      }
+      if (startVal === endVal) {
+        return res.status(400).json({ error: 'Start and end are the same.' });
+      }
+  
+      // Build graph and calculate route
+      const usableGraph = buildUsableGraph(ignoredLines);
+      const stops = [startVal, ...mustPassStations, endVal];
+  
+      const route = multiSegmentPath(stops, usableGraph, comfort);
+      if (!route) {
+        return res.status(404).json({ error: 'No route found with current constraints.' });
+      }
+  
+      // Success response
+      return res
+        .set('Connection', 'close') // Explicitly close connection
+        .json({
+          route,
+          stationCount: route.length,
+          comfortMode: comfort,
+          mustPassStations,
+          ignoredLines,
+        });
+    } catch (error) {
+      console.error('[ERROR]', error); // Log unexpected errors
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
   });
-});
+  
 
-/********************************************************
- * 5) START SERVER
- ********************************************************/
+// ------------------------------
+// 4) START THE SERVER (Azure picks the PORT automatically)
+// ------------------------------
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
