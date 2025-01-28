@@ -79,7 +79,6 @@ const LINES = {
 
 // We'll build a global graph
 const graph = {};
-
 function addEdge(a, b, line) {
   if (!graph[a]) graph[a] = [];
   if (!graph[b]) graph[b] = [];
@@ -87,11 +86,11 @@ function addEdge(a, b, line) {
   graph[b].push({ station: a, line });
 }
 
-// Initialize the graph from LINES
-for (const lineName in LINES) {
-  const stations = LINES[lineName];
+// Build the global graph from LINES
+for (const ln in LINES) {
+  const stations = LINES[ln];
   for (let i = 0; i < stations.length - 1; i++) {
-    addEdge(stations[i], stations[i+1], lineName);
+    addEdge(stations[i], stations[i + 1], ln);
   }
 }
 
@@ -136,27 +135,27 @@ function bfsMinTransfers(start, end, usableGraph) {
   }
 
   while (queue.length > 0) {
-    // Sort by transferCount
+    // sort by transferCount to simulate priority
     queue.sort((a,b) => a.transferCount - b.transferCount);
     const current = queue.shift();
     if (current.station === end) {
       return reconstructPathTransfers(parents, end, current.lineUsed);
     }
     for (const edge of usableGraph[current.station]) {
-      const nextSt = edge.station;
-      const nextLn = edge.line;
-      const isTransfer = (current.lineUsed && current.lineUsed !== nextLn) ? 1 : 0;
+      const nSt = edge.station;
+      const nLn = edge.line;
+      const isTransfer = (current.lineUsed && current.lineUsed !== nLn) ? 1 : 0;
       const newTransferCount = current.transferCount + isTransfer;
 
-      const key = `${nextSt}|${nextLn}`;
-      if (!visited.has(key) || visited.get(key) > newTransferCount) {
-        visited.set(key, newTransferCount);
+      const nKey = `${nSt}|${nLn}`;
+      if (!visited.has(nKey) || visited.get(nKey) > newTransferCount) {
+        visited.set(nKey, newTransferCount);
         queue.push({
-          station: nextSt,
-          lineUsed: nextLn,
+          station: nSt,
+          lineUsed: nLn,
           transferCount: newTransferCount
         });
-        setParent(nextSt, nextLn, current);
+        setParent(nSt, nLn, current);
       }
     }
   }
@@ -217,7 +216,7 @@ function multiSegmentPath(stops, useGraph, comfort) {
   let finalPath = [];
   for (let i = 0; i < stops.length - 1; i++) {
     const segStart = stops[i];
-    const segEnd   = stops[i+1];
+    const segEnd   = stops[i + 1];
     let partial = null;
     if (!comfort) {
       partial = bfsMinStations(segStart, segEnd, useGraph);
@@ -225,21 +224,22 @@ function multiSegmentPath(stops, useGraph, comfort) {
       partial = bfsMinTransfers(segStart, segEnd, useGraph);
     }
     if (!partial) return null;
-    if (i > 0) partial.shift(); // avoid duplicating intermediate
+    if (i > 0) partial.shift(); 
     finalPath = finalPath.concat(partial);
   }
   return finalPath;
 }
 
 /********************************************************
- * 3) SERVE STATIC FILES
+ * 3) SERVE STATIC FILES (if needed)
  ********************************************************/
 app.use(express.static(path.join(__dirname, 'public')));
 
 /********************************************************
- * 4) /api/route ENDPOINT
+ * 4) /api/route ENDPOINT - FIXED: "Connection: close"
  ********************************************************/
 app.get('/api/route', (req, res) => {
+  // parse query
   const startVal = req.query.start;
   const endVal   = req.query.end;
   const comfort  = (req.query.comfort === '1' || req.query.comfort === 'true');
@@ -256,28 +256,33 @@ app.get('/api/route', (req, res) => {
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
-  // Validate
+  // validate
   if (!startVal || !endVal) {
+    // Force "Connection: close"
+    res.set('Connection','close');
     return res.json({ error: 'Missing start or end station.' });
   }
   if (!graph[startVal] || !graph[endVal]) {
+    res.set('Connection','close');
     return res.json({ error: 'Invalid station name(s).' });
   }
   if (startVal === endVal) {
+    res.set('Connection','close');
     return res.json({ error: 'Start and end are the same.' });
   }
 
-  // Build graph ignoring lines
+  // build graph ignoring lines
   const usableGraph = buildUsableGraph(ignoredLines);
-
   // BFS with optional must-pass
   const stops = [startVal, ...mustPassStations, endVal];
   const route = multiSegmentPath(stops, usableGraph, comfort);
-
   if (!route) {
+    res.set('Connection','close');
     return res.json({ error: 'No route found with current constraints.' });
   }
 
+  // FIX: Explicitly close connection, then return
+  res.set('Connection','close');
   return res.json({
     route,
     stationCount: route.length,
