@@ -77,7 +77,7 @@ const LINES = {
     M13:"#F700FF",M14:"#8800FF"
   };
 
-// Build the graph
+// We'll build a global graph
 const graph = {};
 function addEdge(a, b, line) {
   if (!graph[a]) graph[a] = [];
@@ -85,19 +85,24 @@ function addEdge(a, b, line) {
   graph[a].push({ station: b, line });
   graph[b].push({ station: a, line });
 }
+
 for (const ln in LINES) {
-  const arr = LINES[ln];
-  for (let i = 0; i < arr.length - 1; i++) {
-    addEdge(arr[i], arr[i+1], ln);
+  const stArr = LINES[ln];
+  for (let i = 0; i < stArr.length - 1; i++) {
+    addEdge(stArr[i], stArr[i + 1], ln);
   }
 }
 
-// BFS logic (minimize station count)
+/********************************************************
+ * 2) BFS LOGIC
+ ********************************************************/
+// BFS (min stations)
 function bfsMinStations(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [start];
   const visited = new Set([start]);
   const parents = { [start]: { parent: null, lineUsed: null } };
+
   while (queue.length > 0) {
     const current = queue.shift();
     if (current === end) {
@@ -114,7 +119,7 @@ function bfsMinStations(start, end, usableGraph) {
   return null;
 }
 
-// BFS logic (minimize transfers)
+// BFS (min transfers)
 function bfsMinTransfers(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [];
@@ -131,7 +136,7 @@ function bfsMinTransfers(start, end, usableGraph) {
   }
 
   while (queue.length > 0) {
-    // Sort by transferCount (rough priority queue)
+    // sort by how many transfers so far
     queue.sort((a,b) => a.transferCount - b.transferCount);
     const current = queue.shift();
     if (current.station === end) {
@@ -141,11 +146,16 @@ function bfsMinTransfers(start, end, usableGraph) {
       const nSt = edge.station;
       const nLn = edge.line;
       const isTransfer = (current.lineUsed && current.lineUsed !== nLn) ? 1 : 0;
-      const newTransfers = current.transferCount + isTransfer;
-      const nKey = `${nSt}|${nLn}`;
-      if (!visited.has(nKey) || visited.get(nKey) > newTransfers) {
-        visited.set(nKey, newTransfers);
-        queue.push({ station: nSt, lineUsed: nLn, transferCount: newTransfers });
+      const nextTransfers = current.transferCount + isTransfer;
+
+      const key = `${nSt}|${nLn}`;
+      if (!visited.has(key) || visited.get(key) > nextTransfers) {
+        visited.set(key, nextTransfers);
+        queue.push({
+          station: nSt,
+          lineUsed: nLn,
+          transferCount: nextTransfers
+        });
         setParent(nSt, nLn, current);
       }
     }
@@ -153,6 +163,7 @@ function bfsMinTransfers(start, end, usableGraph) {
   return null;
 }
 
+// Reconstruct BFS path
 function reconstructPath(parents, end) {
   const path = [];
   let cur = end;
@@ -162,16 +173,16 @@ function reconstructPath(parents, end) {
   }
   const result = [];
   for (let i = 0; i < path.length; i++) {
-    let ln = null;
-    if (i>0) ln = parents[path[i]].lineUsed;
-    result.push({ station: path[i], line: ln });
+    let usedLine = null;
+    if (i > 0) usedLine = parents[path[i]].lineUsed;
+    result.push({ station: path[i], line: usedLine });
   }
-  // fix first line if needed
   if (result.length > 1 && result[0].line === null) {
     result[0].line = result[1].line;
   }
   return result;
 }
+
 function reconstructPathTransfers(parents, end, endLine) {
   const path = [];
   let cSt = end, cLn = endLine;
@@ -182,92 +193,106 @@ function reconstructPathTransfers(parents, end, endLine) {
     cSt = pr.pSt;
     cLn = pr.pLn;
   }
-  if (path.length>1 && path[0].line === null) {
+  if (path.length > 1 && path[0].line === null) {
     path[0].line = path[1].line;
   }
   return path;
 }
 
-// Build usable graph ignoring lines
+// Exclude lines
 function buildUsableGraph(ignoredLines) {
   const newGraph = {};
-  for (const st in graph) {
-    newGraph[st] = [];
-    for (const edge of graph[st]) {
+  for (const station in graph) {
+    newGraph[station] = [];
+    for (const edge of graph[station]) {
       if (!ignoredLines.includes(edge.line)) {
-        newGraph[st].push({ ...edge });
+        newGraph[station].push({ ...edge });
       }
     }
   }
   return newGraph;
 }
 
-// Multi-segment BFS if user wants to pass through stations
+// If we must pass through certain stations, BFS each segment
 function multiSegmentPath(stops, useGraph, comfort) {
   let finalPath = [];
-  for (let i=0; i<stops.length-1; i++) {
+  for (let i = 0; i < stops.length - 1; i++) {
     const segStart = stops[i];
     const segEnd   = stops[i+1];
-    let partial = null;
+    let partial;
     if (!comfort) {
       partial = bfsMinStations(segStart, segEnd, useGraph);
     } else {
       partial = bfsMinTransfers(segStart, segEnd, useGraph);
     }
     if (!partial) return null;
-    if (i>0) partial.shift(); // avoid duplicating the intermediate station
+    if (i > 0) partial.shift(); 
     finalPath = finalPath.concat(partial);
   }
   return finalPath;
 }
 
-// ------------------------------
-// 2) STATIC FILES
-// ------------------------------
+/********************************************************
+ * 3) STATIC FILES
+ ********************************************************/
+// If you have a front-end in /public, serve it:
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ------------------------------
-// 3) API ENDPOINT
-// ------------------------------
+/********************************************************
+ * 4) /api/route ENDPOINT
+ *    - Updated to match the new OpenAPI 3.1.0 spec
+ ********************************************************/
 app.get('/api/route', (req, res) => {
   const startVal = req.query.start;
-  const endVal = req.query.end;
-  const comfort = (req.query.comfort === '1' || req.query.comfort === 'true');
-  
-  // optional
-  const through = req.query.through || '';
-  const mustPassStations = through
+  const endVal   = req.query.end;
+  const comfort  = (req.query.comfort === '1' || req.query.comfort === 'true');
+
+  const throughVal = req.query.through || '';
+  const mustPassStations = throughVal
     .split(',')
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
-  const ignore = req.query.ignore || '';
-  const ignoredLines = ignore
+  const ignoreVal = req.query.ignore || '';
+  const ignoredLines = ignoreVal
     .split(',')
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
-  // Validate
+  // Validate according to the OpenAPI parameters
   if (!startVal || !endVal) {
-    return res.json({ error: 'Missing start or end station.' });
+    // 400 - invalid request
+    return res.status(400).json({
+      error: "Missing start or end station."
+    });
   }
   if (!graph[startVal] || !graph[endVal]) {
-    return res.json({ error: 'Invalid station name(s).' });
+    return res.status(400).json({
+      error: "Invalid station name(s)."
+    });
   }
   if (startVal === endVal) {
-    return res.json({ error: 'Start and end are the same.' });
+    return res.status(400).json({
+      error: "Start and end are the same."
+    });
   }
 
-  // Build graph ignoring lines
+  // Build a graph ignoring lines (if any)
   const usableGraph = buildUsableGraph(ignoredLines);
+
+  // BFS with must-pass stations
   const stops = [startVal, ...mustPassStations, endVal];
-  // BFS
   const route = multiSegmentPath(stops, usableGraph, comfort);
+
   if (!route) {
-    return res.json({ error: 'No route found with current constraints.' });
+    // 404 - no route found
+    return res.status(404).json({
+      error: "No route found with current constraints."
+    });
   }
-  
-  return res.json({
+
+  // 200 - success
+  return res.status(200).json({
     route,
     stationCount: route.length,
     comfortMode: comfort,
@@ -276,10 +301,10 @@ app.get('/api/route', (req, res) => {
   });
 });
 
-// ------------------------------
-// 4) START THE SERVER (Azure picks the PORT automatically)
-// ------------------------------
+/********************************************************
+ * 5) START SERVER
+ ********************************************************/
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
