@@ -86,18 +86,17 @@ function addEdge(a, b, line) {
   graph[b].push({ station: a, line });
 }
 
-// Build the global graph from LINES
 for (const ln in LINES) {
-  const stations = LINES[ln];
-  for (let i = 0; i < stations.length - 1; i++) {
-    addEdge(stations[i], stations[i+1], ln);
+  const stArr = LINES[ln];
+  for (let i = 0; i < stArr.length - 1; i++) {
+    addEdge(stArr[i], stArr[i + 1], ln);
   }
 }
 
 /********************************************************
  * 2) BFS LOGIC
  ********************************************************/
-// BFS to minimize number of stations
+// BFS (min stations)
 function bfsMinStations(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [start];
@@ -120,7 +119,7 @@ function bfsMinStations(start, end, usableGraph) {
   return null;
 }
 
-// BFS to minimize transfers
+// BFS (min transfers)
 function bfsMinTransfers(start, end, usableGraph) {
   if (!usableGraph[start] || !usableGraph[end]) return null;
   const queue = [];
@@ -137,6 +136,7 @@ function bfsMinTransfers(start, end, usableGraph) {
   }
 
   while (queue.length > 0) {
+    // sort by how many transfers so far
     queue.sort((a,b) => a.transferCount - b.transferCount);
     const current = queue.shift();
     if (current.station === end) {
@@ -146,11 +146,16 @@ function bfsMinTransfers(start, end, usableGraph) {
       const nSt = edge.station;
       const nLn = edge.line;
       const isTransfer = (current.lineUsed && current.lineUsed !== nLn) ? 1 : 0;
-      const newT = current.transferCount + isTransfer;
+      const nextTransfers = current.transferCount + isTransfer;
+
       const key = `${nSt}|${nLn}`;
-      if (!visited.has(key) || visited.get(key) > newT) {
-        visited.set(key, newT);
-        queue.push({ station: nSt, lineUsed: nLn, transferCount: newT });
+      if (!visited.has(key) || visited.get(key) > nextTransfers) {
+        visited.set(key, nextTransfers);
+        queue.push({
+          station: nSt,
+          lineUsed: nLn,
+          transferCount: nextTransfers
+        });
         setParent(nSt, nLn, current);
       }
     }
@@ -158,7 +163,7 @@ function bfsMinTransfers(start, end, usableGraph) {
   return null;
 }
 
-// Reconstruct BFS path (min stations)
+// Reconstruct BFS path
 function reconstructPath(parents, end) {
   const path = [];
   let cur = end;
@@ -169,9 +174,7 @@ function reconstructPath(parents, end) {
   const result = [];
   for (let i = 0; i < path.length; i++) {
     let usedLine = null;
-    if (i > 0) {
-      usedLine = parents[path[i]].lineUsed;
-    }
+    if (i > 0) usedLine = parents[path[i]].lineUsed;
     result.push({ station: path[i], line: usedLine });
   }
   if (result.length > 1 && result[0].line === null) {
@@ -180,7 +183,6 @@ function reconstructPath(parents, end) {
   return result;
 }
 
-// Reconstruct BFS path (min transfers)
 function reconstructPathTransfers(parents, end, endLine) {
   const path = [];
   let cSt = end, cLn = endLine;
@@ -197,7 +199,7 @@ function reconstructPathTransfers(parents, end, endLine) {
   return path;
 }
 
-// Build a "usable graph" ignoring certain lines
+// Exclude lines
 function buildUsableGraph(ignoredLines) {
   const newGraph = {};
   for (const station in graph) {
@@ -211,13 +213,13 @@ function buildUsableGraph(ignoredLines) {
   return newGraph;
 }
 
-// For must-pass stations
+// If we must pass through certain stations, BFS each segment
 function multiSegmentPath(stops, useGraph, comfort) {
   let finalPath = [];
   for (let i = 0; i < stops.length - 1; i++) {
     const segStart = stops[i];
-    const segEnd   = stops[i + 1];
-    let partial = null;
+    const segEnd   = stops[i+1];
+    let partial;
     if (!comfort) {
       partial = bfsMinStations(segStart, segEnd, useGraph);
     } else {
@@ -233,12 +235,12 @@ function multiSegmentPath(stops, useGraph, comfort) {
 /********************************************************
  * 3) STATIC FILES
  ********************************************************/
+// If you have a front-end in /public, serve it:
 app.use(express.static(path.join(__dirname, 'public')));
 
 /********************************************************
  * 4) /api/route ENDPOINT
- *    - No "Connection: close" used
- *    - Return right after res.json() to end response
+ *    - Updated to match the new OpenAPI 3.1.0 spec
  ********************************************************/
 app.get('/api/route', (req, res) => {
   const startVal = req.query.start;
@@ -257,8 +259,9 @@ app.get('/api/route', (req, res) => {
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
-  // Validate
+  // Validate according to the OpenAPI parameters
   if (!startVal || !endVal) {
+    // 400 - invalid request
     return res.status(400).json({
       error: "Missing start or end station."
     });
@@ -274,20 +277,21 @@ app.get('/api/route', (req, res) => {
     });
   }
 
-  // Build graph ignoring certain lines
+  // Build a graph ignoring lines (if any)
   const usableGraph = buildUsableGraph(ignoredLines);
 
-  // BFS with optional must-pass stations
+  // BFS with must-pass stations
   const stops = [startVal, ...mustPassStations, endVal];
   const route = multiSegmentPath(stops, usableGraph, comfort);
 
   if (!route) {
+    // 404 - no route found
     return res.status(404).json({
       error: "No route found with current constraints."
     });
   }
 
-  // Return the successful route
+  // 200 - success
   return res.status(200).json({
     route,
     stationCount: route.length,
@@ -298,7 +302,7 @@ app.get('/api/route', (req, res) => {
 });
 
 /********************************************************
- * 5) START THE SERVER
+ * 5) START SERVER
  ********************************************************/
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
