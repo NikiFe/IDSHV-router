@@ -244,6 +244,7 @@ app.use(express.static(path.join(__dirname, 'public')));
  * 5) /api/route ENDPOINT (OpenAPI 3.1.0 / v2.0.3)
  ********************************************************/
 app.get('/api/route', (req, res) => {
+  console.log("got request")
   // parse query params
   const startVal = req.query.start;
   const endVal   = req.query.end;
