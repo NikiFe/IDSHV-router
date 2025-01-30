@@ -290,6 +290,7 @@ app.get('/api/route', (req, res) => {
   }
 
   // success (200) with route data
+  console.log("Sending route data");
   res.type('application/json');
   return res.status(200).json({
     route,
